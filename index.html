@@ -1,896 +1,1053 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Seeker Tetris ¡¤ ÄÑ¶È¼ÓËÙ°æ</title>
-    <!-- Ê¹ÓÃÍ¼±ê¿â¼ò»¯°´Å¥Í¼±ê (Font Awesome Ãâ·Ñ°æ) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Supabase & Solana ÒÀÀµ -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Seeker Tetris Â· è¯•ç©ç‰ˆ</title>
+    <!-- ä½¿ç”¨å›¾æ ‡åº“ç®€åŒ–æŒ‰é’®å›¾æ ‡ (Font Awesome å…è´¹ç‰ˆ) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- Supabase & Solana ä¾èµ– (ä»ä¿ç•™ä½†è¯•ç©æ—¶ä¸è°ƒç”¨) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        :root {
-            --solana-purple: #dc1fff;
-            --solana-green: #00ffa3;
-            --gold: #ffd700;
-            --bg-start: #0a0515;
-            --bg-end: #020105;
-            --glass-bg: rgba(10, 5, 20, 0.7);
-        }
-        body {
-            background: radial-gradient(circle at center, var(--bg-start) 0%, var(--bg-end) 100%);
-            color: white;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            touch-action: none;
-        }
-        /* Í·²¿×´Ì¬À¸ */
-        #header {
-            padding: 12px 20px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(220, 31, 255, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
-        }
-        .user-stat {
-            display: flex;
-            flex-direction: column;
-        }
-        .label {
-            font-size: 0.6rem;
-            color: rgba(255,255,255,0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .val {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--solana-green);
-        }
-        .val.gold {
-            color: var(--gold);
-        }
-        /* ĞÂÔöµÈ¼¶ÏÔÊ¾ */
-        #level-display {
-            background: rgba(255,215,0,0.15);
-            border-radius: 20px;
-            padding: 2px 10px;
-            font-size: 0.8rem;
-            border: 1px solid var(--gold);
-            color: var(--gold);
-        }
-        /* Ö÷ÓÎÏ·Çø */
-        #main-layout {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        #game-board-container {
-            position: relative;
-            background: #000;
-            padding: 6px;
-            border-radius: 16px;
-            border: 1px solid rgba(220, 31, 255, 0.4);
-            box-shadow: 0 0 30px rgba(220, 31, 255, 0.3);
-        }
-        canvas {
-            display: block;
-            width: 260px;
-            height: 440px;
-            image-rendering: crisp-edges;
-        }
-        /* ÏÂÒ»¸ö·½¿éÈİÆ÷ */
-        #next-container {
-            position: absolute;
-            top: 10px;
-            right: -70px;
-            background: rgba(220, 31, 255, 0.15);
-            padding: 8px 6px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid rgba(220,31,255,0.3);
-            backdrop-filter: blur(4px);
-        }
-        #nextCanvas {
-            width: 50px;
-            height: 50px;
-            display: block;
-            margin: 4px auto 0;
-        }
-        /* ¸¡¶¯Í¼±ê°´Å¥ */
-        .float-btn {
-            position: absolute;
-            background: rgba(220, 31, 255, 0.2);
-            border: 1px solid rgba(220, 31, 255, 0.4);
-            color: white;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 50;
-            backdrop-filter: blur(6px);
-            font-size: 1.2rem;
-            transition: 0.15s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-        .float-btn:active { transform: scale(0.92); background: rgba(220,31,255,0.4); }
-        #lb-btn { top: 10px; left: 10px; border-color: var(--gold); color: var(--gold); }
-        #help-btn { top: 65px; left: 10px; }
-        #pause-btn { top: 10px; right: 10px; }
+      * {
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      :root {
+        --solana-purple: #dc1fff;
+        --solana-green: #00ffa3;
+        --gold: #ffd700;
+        --bg-start: #0a0515;
+        --bg-end: #020105;
+        --glass-bg: rgba(10, 5, 20, 0.7);
+      }
+      body {
+        background: radial-gradient(
+          circle at center,
+          var(--bg-start) 0%,
+          var(--bg-end) 100%
+        );
+        color: white;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        touch-action: none; /* å®Œå…¨ç¦æ­¢æµè§ˆå™¨æ‰‹åŠ¿ */
+      }
+      /* å¤´éƒ¨çŠ¶æ€æ  */
+      #header {
+        padding: 12px 20px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(220, 31, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .user-stat {
+        display: flex;
+        flex-direction: column;
+      }
+      .label {
+        font-size: 0.6rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .val {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--solana-green);
+      }
+      .val.gold {
+        color: var(--gold);
+      }
+      /* ä¸»æ¸¸æˆåŒº */
+      #main-layout {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      #game-board-container {
+        position: relative;
+        background: #000;
+        padding: 6px;
+        border-radius: 16px;
+        border: 1px solid rgba(220, 31, 255, 0.4);
+        box-shadow: 0 0 30px rgba(220, 31, 255, 0.3);
+      }
+      canvas {
+        display: block;
+        width: 260px;
+        height: 440px;
+        image-rendering: crisp-edges; /* ä¿æŒæ–¹å—æ¸…æ™° */
+      }
+      /* ä¸‹ä¸€ä¸ªæ–¹å—å®¹å™¨ */
+      #next-container {
+        position: absolute;
+        top: 10px;
+        right: -70px;
+        background: rgba(220, 31, 255, 0.15);
+        padding: 8px 6px;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid rgba(220, 31, 255, 0.3);
+        backdrop-filter: blur(4px);
+      }
+      #nextCanvas {
+        width: 50px;
+        height: 50px;
+        display: block;
+        margin: 4px auto 0;
+      }
+      /* æµ®åŠ¨å›¾æ ‡æŒ‰é’® (ç»Ÿä¸€ç”¨ Font Awesome) */
+      .float-btn {
+        position: absolute;
+        background: rgba(220, 31, 255, 0.2);
+        border: 1px solid rgba(220, 31, 255, 0.4);
+        color: white;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        backdrop-filter: blur(6px);
+        font-size: 1.2rem;
+        transition: 0.15s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+      .float-btn:active {
+        transform: scale(0.92);
+        background: rgba(220, 31, 255, 0.4);
+      }
+      #lb-btn {
+        top: 10px;
+        left: 10px;
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+      #help-btn {
+        top: 65px;
+        left: 10px;
+      }
+      #pause-btn {
+        top: 10px;
+        right: 10px;
+      }
 
-        /* ÕÚÕÖ²ã / µ¯´° */
-        .overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(5, 2, 15, 0.96);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-            backdrop-filter: blur(12px);
-            padding: 20px;
-        }
-        .menu-modal {
-            width: 90%;
-            max-width: 320px;
-            background: #111217;
-            border: 1px solid var(--solana-purple);
-            border-radius: 24px;
-            padding: 24px 20px;
-            text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-        }
-        .menu-btn {
-            width: 220px;
-            padding: 14px 10px;
-            margin: 8px 0;
-            background: rgba(220, 31, 255, 0.12);
-            border: 1px solid var(--solana-purple);
-            color: white;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: 0.15s;
-            backdrop-filter: blur(5px);
-        }
-        .menu-btn:not(:disabled):active { background: rgba(220,31,255,0.3); transform: scale(0.97); }
-        .menu-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: #555; }
+      /* é®ç½©å±‚ / å¼¹çª— */
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(5, 2, 15, 0.96);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        backdrop-filter: blur(12px);
+        padding: 20px;
+      }
+      .menu-modal {
+        width: 90%;
+        max-width: 320px;
+        background: #111217;
+        border: 1px solid var(--solana-purple);
+        border-radius: 24px;
+        padding: 24px 20px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+      }
+      .menu-btn {
+        width: 220px;
+        padding: 14px 10px;
+        margin: 8px 0;
+        background: rgba(220, 31, 255, 0.12);
+        border: 1px solid var(--solana-purple);
+        color: white;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: 0.15s;
+        backdrop-filter: blur(5px);
+      }
+      .menu-btn:not(:disabled):active {
+        background: rgba(220, 31, 255, 0.3);
+        transform: scale(0.97);
+      }
+      .menu-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        border-color: #555;
+      }
 
-        /* ÅÅĞĞ°ñÑùÊ½ */
-        .tab-box {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        .tab {
-            flex: 1;
-            padding: 8px 4px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            border: 1px solid #444;
-            cursor: pointer;
-            background: transparent;
-            color: #aaa;
-        }
-        .tab.active {
-            background: var(--gold);
-            color: black;
-            border-color: var(--gold);
-            font-weight: bold;
-        }
-        .lb-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 6px;
-            border-bottom: 1px solid #222;
-            font-size: 0.8rem;
-        }
-        #lb-content { max-height: 260px; overflow-y: auto; margin: 10px 0; }
-        .loading { color: #aaa; padding: 20px; font-style: italic; }
+      /* æ’è¡Œæ¦œæ ·å¼ */
+      .tab-box {
+        display: flex;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .tab {
+        flex: 1;
+        padding: 8px 4px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        border: 1px solid #444;
+        cursor: pointer;
+        background: transparent;
+        color: #aaa;
+      }
+      .tab.active {
+        background: var(--gold);
+        color: black;
+        border-color: var(--gold);
+        font-weight: bold;
+      }
+      .lb-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 6px;
+        border-bottom: 1px solid #222;
+        font-size: 0.8rem;
+      }
+      #lb-content {
+        max-height: 260px;
+        overflow-y: auto;
+        margin: 10px 0;
+      }
+      .loading {
+        color: #aaa;
+        padding: 20px;
+        font-style: italic;
+      }
 
-        /* ÓÎÏ·½áÊø¼ò¶ÌÌáÊ¾ */
-        #gameover-toast {
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            border: 2px solid var(--solana-green);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-weight: bold;
-            z-index: 300;
-            display: none;
-            backdrop-filter: blur(8px);
-            white-space: nowrap;
-        }
+      /* æ¸¸æˆç»“æŸç®€çŸ­æç¤º */
+      #gameover-toast {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid var(--solana-green);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 40px;
+        font-weight: bold;
+        z-index: 300;
+        display: none;
+        backdrop-filter: blur(8px);
+        white-space: nowrap;
+      }
     </style>
-</head>
-<body>
-
-<div id="header">
-    <div class="user-stat" style="max-width: 45%;">
-        <span class="label"><i class="fas fa-wallet" style="margin-right:4px;"></i>Seeker Wallet</span>
-        <span class="val" id="wallet-display">Î´Á¬½Ó</span>
-        <span class="label" style="margin-top:6px;"><i class="fas fa-coins" style="color:var(--gold);"></i> TET ±Ò</span>
+  </head>
+  <body>
+    <div id="header">
+      <div class="user-stat" style="max-width: 55%">
+        <span class="label"
+          ><i class="fas fa-wallet" style="margin-right: 4px"></i>Seeker
+          Wallet</span
+        >
+        <span class="val" id="wallet-display">æœªè¿æ¥</span>
+        <span class="label" style="margin-top: 6px"
+          ><i class="fas fa-coins" style="color: var(--gold)"></i> TET å¸</span
+        >
         <span class="val gold" id="tet-coins">0</span>
+      </div>
+      <div class="user-stat" style="text-align: right">
+        <span class="label">åˆ†æ•°</span>
+        <span class="val" id="current-score">0</span>
+        <span class="label" style="margin-top: 6px">å†å²æœ€é«˜</span>
+        <span class="val gold" id="high-score">0</span>
+      </div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <div class="user-stat" style="text-align: center;">
-            <span class="label">µÈ¼¶</span>
-            <span class="val gold" id="level-value">1</span>
-        </div>
-        <div class="user-stat" style="text-align: right;">
-            <span class="label">·ÖÊı</span>
-            <span class="val" id="current-score">0</span>
-            <span class="label" style="margin-top:6px;">ÀúÊ·×î¸ß</span>
-            <span class="val gold" id="high-score">0</span>
-        </div>
-    </div>
-</div>
 
-<div id="main-layout">
-    <!-- ¸¡¶¯°´Å¥ -->
-    <div id="lb-btn" class="float-btn" onclick="showLeaderboard()"><i class="fas fa-trophy"></i></div>
-    <div id="help-btn" class="float-btn" onclick="showHelp()"><i class="fas fa-question"></i></div>
-    <button id="pause-btn" class="float-btn" onclick="togglePause()"><i class="fas fa-pause"></i></button>
+    <div id="main-layout">
+      <!-- æµ®åŠ¨æŒ‰é’® (å›¾æ ‡æ›¿ä»£é—®å·) -->
+      <div id="lb-btn" class="float-btn" onclick="showLeaderboard()">
+        <i class="fas fa-trophy"></i>
+      </div>
+      <div id="help-btn" class="float-btn" onclick="showHelp()">
+        <i class="fas fa-question"></i>
+      </div>
+      <button id="pause-btn" class="float-btn" onclick="togglePause()">
+        <i class="fas fa-pause"></i>
+      </button>
 
-    <div id="game-board-container">
+      <div id="game-board-container">
         <canvas id="tetris" width="240" height="400"></canvas>
         <div id="next-container">
-            <span class="label" style="font-size:0.5rem;">NEXT</span>
-            <canvas id="nextCanvas" width="80" height="80"></canvas>
+          <span class="label" style="font-size: 0.5rem">NEXT</span>
+          <canvas id="nextCanvas" width="80" height="80"></canvas>
         </div>
-    </div>
+      </div>
 
-    <!-- ÓÎÏ·½áÊøĞ¡ÌáÊ¾ -->
-    <div id="gameover-toast">GAME OVER</div>
+      <!-- æ¸¸æˆç»“æŸå°æç¤º -->
+      <div id="gameover-toast">GAME OVER</div>
 
-    <!-- ½±Àøµ¯´° -->
-    <div id="reward-overlay" class="overlay" style="display:none;">
-        <div class="menu-modal" style="border-color:var(--gold)">
-            <i class="fas fa-gift" style="font-size:3rem; color:var(--gold); margin-bottom:10px;"></i>
-            <h2 style="color:var(--gold); margin:0;">ÖÜÅÅÃû½±Àø</h2>
-            <p id="reward-msg" style="color:#ccc;">ÄãÉÏÖÜÅÅÃû¿¿Ç°£¬»ñµÃ¶îÍâ±Ò</p>
-            <h1 id="reward-amount" style="color:var(--solana-green); font-size:2.5rem; margin:10px 0;">+0</h1>
-            <button class="menu-btn" onclick="claimReward()" style="background:rgba(255,215,0,0.2); border-color:var(--gold);">ÁìÈ¡ TET</button>
-            <button class="menu-btn" onclick="closeReward()" style="border-color:#555;">ÉÔºó</button>
+      <!-- å¥–åŠ±å¼¹çª— -->
+      <div id="reward-overlay" class="overlay" style="display: none">
+        <div class="menu-modal" style="border-color: var(--gold)">
+          <i
+            class="fas fa-gift"
+            style="font-size: 3rem; color: var(--gold); margin-bottom: 10px"
+          ></i>
+          <h2 style="color: var(--gold); margin: 0">å‘¨æ’åå¥–åŠ±</h2>
+          <p id="reward-msg" style="color: #ccc">ä½ ä¸Šå‘¨æ’åé å‰ï¼Œè·å¾—é¢å¤–å¸</p>
+          <h1
+            id="reward-amount"
+            style="
+              color: var(--solana-green);
+              font-size: 2.5rem;
+              margin: 10px 0;
+            "
+          >
+            +0
+          </h1>
+          <button
+            class="menu-btn"
+            onclick="claimReward()"
+            style="
+              background: rgba(255, 215, 0, 0.2);
+              border-color: var(--gold);
+            "
+          >
+            é¢†å– TET
+          </button>
+          <button
+            class="menu-btn"
+            onclick="closeReward()"
+            style="border-color: #555"
+          >
+            ç¨å
+          </button>
         </div>
-    </div>
+      </div>
 
-    <!-- °ïÖúµ¯´° -->
-    <div id="help-overlay" class="overlay" style="display:none;">
+      <!-- å¸®åŠ©å¼¹çª— -->
+      <div id="help-overlay" class="overlay" style="display: none">
         <div class="menu-modal">
-            <i class="fas fa-gamepad" style="font-size:2.5rem; color:var(--solana-green);"></i>
-            <h3 style="color:var(--solana-green)">²Ù×÷ËµÃ÷</h3>
-            <p style="margin:5px 0;"><i class="fas fa-arrow-left"></i> <i class="fas fa-arrow-right"></i> ×óÓÒ»¬¶¯£ºÒÆ¶¯</p>
-            <p><i class="fas fa-arrow-up"></i> ÉÏ»¬£ºĞı×ª</p>
-            <p><i class="fas fa-arrow-down"></i> ÏÂ»¬¶Ì¾àÀë£ºÈí½µÒ»¸ñ</p>
-            <p><i class="fas fa-arrow-down" style="transform:scale(1.2);"></i> ÏÂ»¬³¤¾àÀë£ºÓ²½µµ½µ×</p>
-            <hr style="border:0.5px solid #333; margin:20px 0;">
-            <p style="font-size:0.8rem;">Ã¿Ïû³ıÒ»ĞĞ 20 ·Ö<br>Ã¿Ïû³ı 5 ĞĞ£¬µÈ¼¶ +1£¬ËÙ¶È +10%</p>
-            <button class="menu-btn" onclick="closeHelp()">¹Ø±Õ</button>
+          <i
+            class="fas fa-gamepad"
+            style="font-size: 2.5rem; color: var(--solana-green)"
+          ></i>
+          <h3 style="color: var(--solana-green)">æ“ä½œè¯´æ˜</h3>
+          <p style="margin: 5px 0">
+            <i class="fas fa-arrow-left"></i>
+            <i class="fas fa-arrow-right"></i> å·¦å³æ»‘åŠ¨ï¼šç§»åŠ¨
+          </p>
+          <p><i class="fas fa-arrow-up"></i> ä¸Šæ»‘ï¼šæ—‹è½¬</p>
+          <p><i class="fas fa-arrow-down"></i> ä¸‹æ»‘çŸ­è·ç¦»ï¼šè½¯é™ä¸€æ ¼</p>
+          <p>
+            <i class="fas fa-arrow-down" style="transform: scale(1.2)"></i>
+            ä¸‹æ»‘é•¿è·ç¦»ï¼šç¡¬é™åˆ°åº•
+          </p>
+          <hr style="border: 0.5px solid #333; margin: 20px 0" />
+          <p style="font-size: 0.8rem">
+            æ¯æ¶ˆé™¤ä¸€è¡Œ 20 åˆ†<br />100 åˆ† = 1 TET å¸
+          </p>
+          <button class="menu-btn" onclick="closeHelp()">å…³é—­</button>
         </div>
-    </div>
+      </div>
 
-    <!-- ÅÅĞĞ°ñµ¯´° -->
-    <div id="lb-overlay" class="overlay" style="display:none;">
-        <div class="menu-modal" style="border-color:var(--gold); max-width:340px;">
-            <h3 style="color:var(--gold); margin:0 0 10px;"><i class="fas fa-crown"></i> ÅÅĞĞ°ñ</h3>
-            <div class="tab-box">
-                <div id="tab-w" class="tab active" onclick="loadLB('weekly')">±¾ÖÜ</div>
-                <div id="tab-m" class="tab" onclick="loadLB('monthly')">±¾ÔÂ</div>
+      <!-- æ’è¡Œæ¦œå¼¹çª— -->
+      <div id="lb-overlay" class="overlay" style="display: none">
+        <div
+          class="menu-modal"
+          style="border-color: var(--gold); max-width: 340px"
+        >
+          <h3 style="color: var(--gold); margin: 0 0 10px">
+            <i class="fas fa-crown"></i> æ’è¡Œæ¦œ
+          </h3>
+          <div class="tab-box">
+            <div id="tab-w" class="tab active" onclick="loadLB('weekly')">
+              æœ¬å‘¨
             </div>
-            <div id="lb-content" style="min-height:150px;">¼ÓÔØÖĞ...</div>
-            <button class="menu-btn" onclick="closeLB()" style="margin-top:10px;">·µ»Ø</button>
+            <div id="tab-m" class="tab" onclick="loadLB('monthly')">æœ¬æœˆ</div>
+          </div>
+          <div id="lb-content" style="min-height: 150px">åŠ è½½ä¸­...</div>
+          <button class="menu-btn" onclick="closeLB()" style="margin-top: 10px">
+            è¿”å›
+          </button>
         </div>
-    </div>
+      </div>
 
-    <!-- ÔİÍ£µ¯´° -->
-    <div id="pause-overlay" class="overlay" style="display:none;">
+      <!-- æš‚åœå¼¹çª— -->
+      <div id="pause-overlay" class="overlay" style="display: none">
         <div class="menu-modal">
-            <i class="fas fa-pause-circle" style="font-size:3rem; color:var(--solana-purple);"></i>
-            <h2 style="color:var(--solana-purple);">ÔİÍ£ÖĞ</h2>
-            <button class="menu-btn" onclick="togglePause()">¼ÌĞøÓÎÏ·</button>
-            <button class="menu-btn" onclick="resetAndRestart()">ÖØĞÂ¿ªÊ¼</button>
-            <button class="menu-btn" onclick="quitToMenu()">·µ»Ø²Ëµ¥</button>
+          <i
+            class="fas fa-pause-circle"
+            style="font-size: 3rem; color: var(--solana-purple)"
+          ></i>
+          <h2 style="color: var(--solana-purple)">æš‚åœä¸­</h2>
+          <button class="menu-btn" onclick="togglePause()">ç»§ç»­æ¸¸æˆ</button>
+          <button class="menu-btn" onclick="resetAndRestart()">é‡æ–°å¼€å§‹</button>
+          <button class="menu-btn" onclick="quitToMenu()">è¿”å›èœå•</button>
         </div>
+      </div>
+
+      <!-- å¼€å§‹èœå• -->
+      <div id="start-menu" class="overlay">
+        <div style="text-align: center; max-width: 320px">
+          <h1
+            style="
+              color: var(--solana-green);
+              letter-spacing: 4px;
+              text-shadow: 0 0 15px rgba(0, 255, 163, 0.5);
+            "
+          >
+            SEEKER TETRIS
+          </h1>
+          <p style="color: #aaa; margin-bottom: 20px">è¿æ¥é’±åŒ…ï¼Œèµšå– TET å¸</p>
+          <!-- è¯•ç©æç¤º -->
+          <p style="color: #ffd700; font-size: 0.85rem; margin-bottom: 10px">
+            <i class="fas fa-gamepad"></i> æ— éœ€é’±åŒ…ä¹Ÿå¯è¯•ç©ï¼Œåˆ†æ•°ä¸ä¼šä¿å­˜
+          </p>
+          <button id="connect-btn" class="menu-btn" onclick="connectWallet()">
+            <i class="fas fa-plug"></i> è¿æ¥ Seeker é’±åŒ…
+          </button>
+          <button id="play-btn" class="menu-btn" onclick="startGame()">
+            <i class="fas fa-play"></i> å¼€å§‹ä»»åŠ¡
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- ¿ªÊ¼²Ëµ¥ -->
-    <div id="start-menu" class="overlay">
-        <div style="text-align:center; max-width:320px;">
-            <h1 style="color:var(--solana-green); letter-spacing:4px; text-shadow:0 0 15px rgba(0,255,163,0.5);">SEEKER TETRIS</h1>
-            <p style="color:#aaa; margin-bottom:20px;">Á¬½ÓÇ®°ü£¬×¬È¡ TET ±Ò</p>
-            <p style="color:#ffd700; font-size:0.85rem; margin-bottom:10px;"><i class="fas fa-gamepad"></i> ÎŞĞèÇ®°üÒ²¿ÉÊÔÍæ£¬·ÖÊı²»»á±£´æ</p>
-            <button id="connect-btn" class="menu-btn" onclick="connectWallet()"><i class="fas fa-plug"></i> Á¬½Ó Seeker Ç®°ü</button>
-            <button id="play-btn" class="menu-btn" onclick="startGame()"><i class="fas fa-play"></i> ¿ªÊ¼ÈÎÎñ</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    (function() {
-        // ---------- ³õÊ¼»¯ÅäÖÃ ----------
-        const SUPABASE_URL = 'https://rczmgwjvvwxdcpgkodey.supabase.co';
-        const SUPABASE_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjem1nd2p2dnd4ZGNwZ2tvZGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTcxNzIsImV4cCI6MjA4NzU5MzE3Mn0.RMhyCd9u5XS5tUGxc9dBJwKUTlE7jglWY_YCuacwtQc';
+    <script>
+      (function () {
+        // ---------- åˆå§‹åŒ–é…ç½® ----------
+        const SUPABASE_URL = "https://rczmgwjvvwxdcpgkodey.supabase.co";
+        const SUPABASE_KEY =
+          "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjem1nd2p2dnd4ZGNwZ2tvZGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTcxNzIsImV4cCI6MjA4NzU5MzE3Mn0.RMhyCd9u5XS5tUGxc9dBJwKUTlE7jglWY_YCuacwtQc";
         const supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // È«¾Ö×´Ì¬
+        // å…¨å±€çŠ¶æ€
         let walletAddr = null;
         let gameActive = false;
         let isPaused = false;
-        // ÄÑ¶ÈÏà¹Ø
-        let level = 1;
-        let totalLinesCleared = 0;          // ÀÛ¼ÆÏû³ıĞĞÊı£¨ÓÃÓÚÉı¼¶£©
-        const BASE_INTERVAL = 1000;          // ³õÊ¼ÏÂÂä¼ä¸ô(ms)
-        const MIN_INTERVAL = 100;             // ×î¿ì¼ä¸ô
-        let dropInterval = BASE_INTERVAL;
+        let dropInterval = 1000; // ms
         let dropCounter = 0;
         let lastTimestamp = 0;
         let animationFrame = null;
 
-        // ÓÎÏ·Êı¾İ
-        const canvas = document.getElementById('tetris');
-        const context = canvas.getContext('2d');
-        const nCanvas = document.getElementById('nextCanvas');
-        const nContext = nCanvas.getContext('2d');
+        // æ¸¸æˆæ•°æ®
+        const canvas = document.getElementById("tetris");
+        const context = canvas.getContext("2d");
+        const nCanvas = document.getElementById("nextCanvas");
+        const nContext = nCanvas.getContext("2d");
         context.scale(20, 20);
         nContext.scale(20, 20);
 
-        const colors = [null, '#00ffa3', '#dc1fff', '#00e5ff', '#ffbe0b', '#ff006e', '#8338ec', '#3a86ff'];
+        const colors = [
+          null,
+          "#00ffa3",
+          "#dc1fff",
+          "#00e5ff",
+          "#ffbe0b",
+          "#ff006e",
+          "#8338ec",
+          "#3a86ff",
+        ];
         const arena = Array.from({ length: 20 }, () => Array(12).fill(0));
         const player = {
-            pos: { x: 0, y: 0 },
-            matrix: null,
-            next: null,
-            score: 0
+          pos: { x: 0, y: 0 },
+          matrix: null,
+          next: null,
+          score: 0,
         };
 
-        // ¸¨Öúº¯Êı
+        // ---------- è¾…åŠ©å‡½æ•° ----------
         function supabaseCreateClient(url, key) {
-            try {
-                return window.supabase.createClient(url, key);
-            } catch (e) {
-                console.error('Supabase init failed', e);
-                return null;
-            }
+          return window.supabase.createClient(url, key);
         }
 
+        // è·å–ISOå‘¨æ•° (ç”¨äºå¥–åŠ±å‘¨åˆ¤å®š)
         function getWeekNumber(date = new Date()) {
-            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+          const d = new Date(
+            Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+          );
+          d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+          const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+          return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
         }
 
+        // ç”Ÿæˆå‘¨å­˜å‚¨key
         function getWeekKey() {
-            const now = new Date();
-            return `claim_${now.getFullYear()}_${getWeekNumber(now)}`;
+          const now = new Date();
+          return `claim_${now.getFullYear()}_${getWeekNumber(now)}`;
         }
 
-        // Ç®°üÁ¬½Ó
-        window.connectWallet = async function() {
-            const btn = document.getElementById('connect-btn');
-            try {
-                const provider = window.solana || window.phantom?.solana;
-                if (!provider) {
-                    alert('ÇëÔÚ Seeker ä¯ÀÀÆ÷»ò Phantom Ç®°üÖĞ´ò¿ª');
-                    return;
-                }
-                btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Á¬½ÓÖĞ...';
-                const resp = await provider.connect();
-                walletAddr = resp.publicKey.toString();
-                document.getElementById('wallet-display').innerText = walletAddr.slice(0,6) + '...' + walletAddr.slice(-4);
-                btn.style.display = 'none';
-                await updateStatsFromDB();
-                checkAutoRewards();
-            } catch (err) {
-                console.error(err);
-                btn.innerHTML = '<i class="fas fa-plug"></i> Á¬½Ó Seeker Ç®°ü';
-                alert('Á¬½ÓÊ§°Ü: ' + err.message);
+        // ---------- é’±åŒ…è¿æ¥ ----------
+        window.connectWallet = async function () {
+          const btn = document.getElementById("connect-btn");
+          try {
+            const provider = window.solana || window.phantom?.solana;
+            if (!provider) {
+              alert("è¯·åœ¨ Seeker æµè§ˆå™¨æˆ– Phantom é’±åŒ…ä¸­æ‰“å¼€");
+              return;
             }
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> è¿æ¥ä¸­...';
+            const resp = await provider.connect();
+            walletAddr = resp.publicKey.toString();
+            document.getElementById("wallet-display").innerText =
+              walletAddr.slice(0, 6) + "..." + walletAddr.slice(-4);
+            btn.style.display = "none"; // éšè—è¿æ¥æŒ‰é’®
+            // ä»æ•°æ®åº“æ‹‰å–ç”¨æˆ·æ•°æ®
+            await updateStatsFromDB();
+            // æ£€æŸ¥æ˜¯å¦æœ‰æœªé¢†å–å¥–åŠ± (åŸºäºæœ¬åœ°å­˜å‚¨æ¨¡æ‹Ÿï¼Œæ­£å¼åº”åç«¯æ ¡éªŒ)
+            checkAutoRewards();
+          } catch (err) {
+            console.error(err);
+            btn.innerHTML = '<i class="fas fa-plug"></i> è¿æ¥ Seeker é’±åŒ…';
+            alert("è¿æ¥å¤±è´¥: " + err.message);
+          }
         };
 
-        // Êı¾İ¿â²Ù×÷
+        // ---------- æ•°æ®åº“æ“ä½œ ----------
         async function updateStatsFromDB() {
-            if (!walletAddr || !supabase) return;
-            try {
-                const { data, error } = await supabase
-                    .from('leaderboard')
-                    .select('*')
-                    .eq('wallet_address', walletAddr)
-                    .maybeSingle();
-                if (error) throw error;
-                if (data) {
-                    document.getElementById('tet-coins').innerText = data.tet_coins || 0;
-                    document.getElementById('high-score').innerText = data.score || 0;
-                } else {
-                    document.getElementById('tet-coins').innerText = '0';
-                    document.getElementById('high-score').innerText = '0';
-                }
-            } catch (e) {
-                console.warn('DB fetch error', e);
+          if (!walletAddr) return;
+          try {
+            const { data, error } = await supabase
+              .from("leaderboard")
+              .select("*")
+              .eq("wallet_address", walletAddr)
+              .maybeSingle();
+            if (error) throw error;
+            if (data) {
+              document.getElementById("tet-coins").innerText =
+                data.tet_coins || 0;
+              document.getElementById("high-score").innerText = data.score || 0;
+            } else {
+              document.getElementById("tet-coins").innerText = "0";
+              document.getElementById("high-score").innerText = "0";
             }
+          } catch (e) {
+            console.warn("DB fetch error", e);
+          }
         }
 
-        // Í¬²½·ÖÊıÖÁÊı¾İ¿â (³¹µ×ĞŞ¸´ÀÛ¼ÓÂß¼­)
+        // åŒæ­¥åˆ†æ•°è‡³æ•°æ®åº“ (æ¸¸æˆç»“æŸæ—¶è°ƒç”¨)  - è¯•ç©æ¨¡å¼ä¸‹ç›´æ¥è¿”å›
         async function syncEndGame() {
-            if (!walletAddr || !supabase) return;  // Î´Á¬½ÓÇ®°ü»òsupabaseÎŞĞ§Ôò²»Ö´ĞĞ
-            const earned = Math.floor(player.score / 100) || 0;  // È·±£²»ÎªNaN
-            try {
-                // 1. ²éÑ¯µ±Ç°ÓÃ»§¼ÇÂ¼
-                const { data: user, error: fetchError } = await supabase
-                    .from('leaderboard')
-                    .select('score, tet_coins')
-                    .eq('wallet_address', walletAddr)
-                    .maybeSingle();
-
-                if (fetchError) throw fetchError;
-
-                let newScore = player.score;
-                let newCoins = earned;
-
-                if (user) {
-                    // ÒÑÓĞ¼ÇÂ¼£ºÈ¡×î¸ß·Ö£¬ÀÛ¼Ó±Ò
-                    newScore = Math.max(user.score, player.score);
-                    newCoins = (user.tet_coins || 0) + earned;
-                }
-
-                // 2. ¸üĞÂ»ò²åÈë
-                const { error: upsertError } = await supabase
-                    .from('leaderboard')
-                    .upsert({
-                        wallet_address: walletAddr,
-                        score: newScore,
-                        tet_coins: newCoins
-                    }, { onConflict: 'wallet_address' });
-
-                if (upsertError) throw upsertError;
-
-                // 3. Ë¢ĞÂ½çÃæÏÔÊ¾
-                await updateStatsFromDB();
-            } catch (e) {
-                console.error('sync error', e);
-                alert('·ÖÊıÍ¬²½Ê§°Ü£¬µ«±¾µØÒÑ¼ÇÂ¼');
-            }
+          if (!walletAddr) return; // æœªè¿æ¥é’±åŒ…ä¸æ‰§è¡Œä»»ä½•æ•°æ®åº“æ“ä½œ
+          const earned = Math.floor(player.score / 100);
+          try {
+            const { error } = await supabase.from("leaderboard").upsert(
+              {
+                wallet_address: walletAddr,
+                score: player.score,
+                tet_coins: earned,
+              },
+              {
+                onConflict: "wallet_address",
+                ignoreDuplicates: false,
+              }
+            );
+            if (error) throw error;
+            await updateStatsFromDB();
+          } catch (e) {
+            console.error("sync error", e);
+            alert("åˆ†æ•°åŒæ­¥å¤±è´¥ï¼Œä½†æœ¬åœ°å·²è®°å½•");
+          }
         }
 
-        // ½±Àø¼ì²â (¼òµ¥°æ)
+        // å¥–åŠ±æ£€æµ‹ (ç®€å•ç‰ˆ)
         function checkAutoRewards() {
-            if (!walletAddr || !supabase) return;
-            const weekKey = getWeekKey();
-            if (localStorage.getItem(weekKey)) return;
+          if (!walletAddr) return;
+          const weekKey = getWeekKey();
+          if (localStorage.getItem(weekKey)) return;
 
-            supabase
-                .from('leaderboard')
-                .select('*')
-                .order('score', { ascending: false })
-                .limit(50)
-                .then(({ data }) => {
-                    if (!data) return;
-                    const index = data.findIndex(r => r.wallet_address === walletAddr);
-                    if (index === -1) return;
-                    let prize = 0;
-                    if (index === 0) prize = 500;
-                    else if (index < 3) prize = 200;
-                    else if (index < 10) prize = 50;
-                    if (prize > 0) {
-                        document.getElementById('reward-amount').innerText = `+${prize} TET`;
-                        document.getElementById('reward-overlay').style.display = 'flex';
-                        window.pendingPrize = prize;
-                        window.pendingKey = weekKey;
-                    }
-                })
-                .catch(() => {});
+          supabase
+            .from("leaderboard")
+            .select("*")
+            .order("score", { ascending: false })
+            .limit(50)
+            .then(({ data }) => {
+              if (!data) return;
+              const index = data.findIndex(
+                (r) => r.wallet_address === walletAddr
+              );
+              if (index === -1) return;
+              let prize = 0;
+              if (index === 0) prize = 500;
+              else if (index < 3) prize = 200;
+              else if (index < 10) prize = 50;
+              if (prize > 0) {
+                document.getElementById(
+                  "reward-amount"
+                ).innerText = `+${prize} TET`;
+                document.getElementById("reward-overlay").style.display =
+                  "flex";
+                window.pendingPrize = prize;
+                window.pendingKey = weekKey;
+              }
+            })
+            .catch(() => {});
         }
 
-        window.claimReward = async function() {
-            if (!walletAddr || !window.pendingPrize || !supabase) return;
-            try {
-                const { data: user } = await supabase
-                    .from('leaderboard')
-                    .select('tet_coins')
-                    .eq('wallet_address', walletAddr)
-                    .maybeSingle();
-                const newCoins = (user?.tet_coins || 0) + window.pendingPrize;
-                await supabase
-                    .from('leaderboard')
-                    .upsert({ wallet_address: walletAddr, tet_coins: newCoins }, { onConflict: 'wallet_address' });
-                localStorage.setItem(window.pendingKey, 'true');
-                document.getElementById('reward-overlay').style.display = 'none';
-                await updateStatsFromDB();
-                window.pendingPrize = null;
-            } catch (e) {
-                alert('ÁìÈ¡Ê§°Ü£¬ÉÔºóÖØÊÔ');
-            }
+        window.claimReward = async function () {
+          if (!walletAddr || !window.pendingPrize) return;
+          try {
+            const { data: user } = await supabase
+              .from("leaderboard")
+              .select("tet_coins")
+              .eq("wallet_address", walletAddr)
+              .maybeSingle();
+            const newCoins = (user?.tet_coins || 0) + window.pendingPrize;
+            await supabase
+              .from("leaderboard")
+              .upsert(
+                { wallet_address: walletAddr, tet_coins: newCoins },
+                { onConflict: "wallet_address" }
+              );
+            localStorage.setItem(window.pendingKey, "true");
+            document.getElementById("reward-overlay").style.display = "none";
+            await updateStatsFromDB();
+            window.pendingPrize = null;
+          } catch (e) {
+            alert("é¢†å–å¤±è´¥ï¼Œç¨åé‡è¯•");
+          }
         };
-        window.closeReward = function() {
-            document.getElementById('reward-overlay').style.display = 'none';
+        window.closeReward = function () {
+          document.getElementById("reward-overlay").style.display = "none";
         };
 
-        // ---------- ¶íÂŞË¹·½¿éºËĞÄ ----------
+        // ---------- ä¿„ç½—æ–¯æ–¹å—æ ¸å¿ƒ ----------
         function createPiece(type) {
-            if (type === 'I') return [[0,3,0,0],[0,3,0,0],[0,3,0,0],[0,3,0,0]];
-            if (type === 'L') return [[0,0,7],[7,7,7],[0,0,0]];
-            if (type === 'J') return [[1,0,0],[1,1,1],[0,0,0]];
-            if (type === 'O') return [[4,4],[4,4]];
-            if (type === 'Z') return [[5,5,0],[0,5,5],[0,0,0]];
-            if (type === 'S') return [[0,2,2],[2,2,0],[0,0,0]];
-            if (type === 'T') return [[0,6,0],[6,6,6],[0,0,0]];
-            return [[0]];
+          if (type === "I")
+            return [
+              [0, 3, 0, 0],
+              [0, 3, 0, 0],
+              [0, 3, 0, 0],
+              [0, 3, 0, 0],
+            ];
+          if (type === "L")
+            return [
+              [0, 0, 7],
+              [7, 7, 7],
+              [0, 0, 0],
+            ];
+          if (type === "J")
+            return [
+              [1, 0, 0],
+              [1, 1, 1],
+              [0, 0, 0],
+            ];
+          if (type === "O")
+            return [
+              [4, 4],
+              [4, 4],
+            ];
+          if (type === "Z")
+            return [
+              [5, 5, 0],
+              [0, 5, 5],
+              [0, 0, 0],
+            ];
+          if (type === "S")
+            return [
+              [0, 2, 2],
+              [2, 2, 0],
+              [0, 0, 0],
+            ];
+          if (type === "T")
+            return [
+              [0, 6, 0],
+              [6, 6, 6],
+              [0, 0, 0],
+            ];
+          return [[0]];
         }
 
         function draw() {
-            context.fillStyle = '#05020a';
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            // »æÖÆÓ°×Ó
-            const ghost = { pos: { x: player.pos.x, y: player.pos.y }, matrix: player.matrix };
-            while (!collide(arena, ghost)) ghost.pos.y++;
-            ghost.pos.y--;
-            ghost.matrix.forEach((row, y) => {
-                row.forEach((val, x) => {
-                    if (val) {
-                        context.fillStyle = 'rgba(255,255,255,0.12)';
-                        context.fillRect(x + ghost.pos.x + 0.05, y + ghost.pos.y + 0.05, 0.9, 0.9);
-                    }
-                });
+          context.fillStyle = "#05020a";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          // ç»˜åˆ¶å½±å­ (ghost)
+          const ghost = {
+            pos: { x: player.pos.x, y: player.pos.y },
+            matrix: player.matrix,
+          };
+          while (!collide(arena, ghost)) ghost.pos.y++;
+          ghost.pos.y--;
+          ghost.matrix.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                context.fillStyle = "rgba(255,255,255,0.12)";
+                context.fillRect(
+                  x + ghost.pos.x + 0.05,
+                  y + ghost.pos.y + 0.05,
+                  0.9,
+                  0.9
+                );
+              }
             });
-            // »æÖÆÒÑ¹Ì¶¨·½¿é
-            arena.forEach((row, y) => {
-                row.forEach((val, x) => {
-                    if (val) {
-                        context.fillStyle = colors[val];
-                        context.fillRect(x + 0.05, y + 0.05, 0.9, 0.9);
-                    }
-                });
+          });
+          // ç»˜åˆ¶å·²å›ºå®šçš„æ–¹å—
+          arena.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                context.fillStyle = colors[val];
+                context.fillRect(x + 0.05, y + 0.05, 0.9, 0.9);
+              }
             });
-            // »æÖÆµ±Ç°·½¿é
-            player.matrix.forEach((row, y) => {
-                row.forEach((val, x) => {
-                    if (val) {
-                        context.fillStyle = colors[val];
-                        context.fillRect(x + player.pos.x + 0.05, y + player.pos.y + 0.05, 0.9, 0.9);
-                    }
-                });
+          });
+          // ç»˜åˆ¶å½“å‰æ–¹å—
+          player.matrix.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                context.fillStyle = colors[val];
+                context.fillRect(
+                  x + player.pos.x + 0.05,
+                  y + player.pos.y + 0.05,
+                  0.9,
+                  0.9
+                );
+              }
             });
-            // »æÖÆÏÂÒ»¸ö·½¿é
-            nContext.fillStyle = '#05020a';
-            nContext.fillRect(0, 0, 4, 4);
-            if (player.next) {
-                const nextMat = player.next;
-                const offsetX = (4 - nextMat[0].length) / 2;
-                const offsetY = (4 - nextMat.length) / 2;
-                nextMat.forEach((row, y) => {
-                    row.forEach((val, x) => {
-                        if (val) {
-                            nContext.fillStyle = colors[val];
-                            nContext.fillRect(x + offsetX + 0.05, y + offsetY + 0.05, 0.9, 0.9);
-                        }
-                    });
-                });
-            }
+          });
+          // ç»˜åˆ¶ä¸‹ä¸€ä¸ªæ–¹å—
+          nContext.fillStyle = "#05020a";
+          nContext.fillRect(0, 0, 4, 4);
+          if (player.next) {
+            const nextMat = player.next;
+            const offsetX = (4 - nextMat[0].length) / 2;
+            const offsetY = (4 - nextMat.length) / 2;
+            nextMat.forEach((row, y) => {
+              row.forEach((val, x) => {
+                if (val) {
+                  nContext.fillStyle = colors[val];
+                  nContext.fillRect(
+                    x + offsetX + 0.05,
+                    y + offsetY + 0.05,
+                    0.9,
+                    0.9
+                  );
+                }
+              });
+            });
+          }
         }
 
         function collide(arena, piece) {
-            const m = piece.matrix;
-            const o = piece.pos;
-            for (let y = 0; y < m.length; y++) {
-                for (let x = 0; x < m[y].length; x++) {
-                    if (m[y][x] !== 0) {
-                        const arenaRow = o.y + y;
-                        const arenaCol = o.x + x;
-                        if (arenaRow >= arena.length || arenaCol < 0 || arenaCol >= arena[0].length || arenaRow < 0) return true;
-                        if (arena[arenaRow] && arena[arenaRow][arenaCol] !== 0) return true;
-                    }
-                }
+          const m = piece.matrix;
+          const o = piece.pos;
+          for (let y = 0; y < m.length; y++) {
+            for (let x = 0; x < m[y].length; x++) {
+              if (m[y][x] !== 0) {
+                const arenaRow = o.y + y;
+                const arenaCol = o.x + x;
+                if (
+                  arenaRow >= arena.length ||
+                  arenaCol < 0 ||
+                  arenaCol >= arena[0].length ||
+                  arenaRow < 0
+                )
+                  return true;
+                if (arena[arenaRow] && arena[arenaRow][arenaCol] !== 0)
+                  return true;
+              }
             }
-            return false;
-        }
-
-        // ¸üĞÂÄÑ¶ÈµÈ¼¶ºÍÏÂÂäËÙ¶È
-        function updateLevel() {
-            const newLevel = 1 + Math.floor(totalLinesCleared / 5);
-            if (newLevel > level) {
-                level = newLevel;
-                // ËÙ¶ÈÌáÉı10% (¼ä¸ô¼õÉÙ10%)
-                dropInterval = Math.max(MIN_INTERVAL, BASE_INTERVAL * Math.pow(0.9, level - 1));
-                document.getElementById('level-value').innerText = level;
-                // ¿ÉÑ¡£ºÕñ¶¯ÌáÊ¾
-                if (window.navigator.vibrate) navigator.vibrate(20);
-            }
+          }
+          return false;
         }
 
         function arenaSweep() {
-            let rowsCleared = 0;
-            outer: for (let y = arena.length - 1; y > 0; y--) {
-                for (let x = 0; x < arena[y].length; x++) {
-                    if (arena[y][x] === 0) continue outer;
-                }
-                const row = arena.splice(y, 1)[0].fill(0);
-                arena.unshift(row);
-                rowsCleared++;
-                y++;
+          let rowsCleared = 0;
+          outer: for (let y = arena.length - 1; y > 0; y--) {
+            for (let x = 0; x < arena[y].length; x++) {
+              if (arena[y][x] === 0) continue outer;
             }
-            if (rowsCleared > 0) {
-                player.score += rowsCleared * 20;
-                document.getElementById('current-score').innerText = player.score;
-                // ÀÛ¼ÆÏû³ıĞĞÊı²¢¼ì²éÉı¼¶
-                totalLinesCleared += rowsCleared;
-                updateLevel();
-                if (window.navigator.vibrate) navigator.vibrate(30);
-            }
+            const row = arena.splice(y, 1)[0].fill(0);
+            arena.unshift(row);
+            rowsCleared++;
+            y++;
+          }
+          if (rowsCleared > 0) {
+            player.score += rowsCleared * 20;
+            document.getElementById("current-score").innerText = player.score;
+            if (window.navigator.vibrate) navigator.vibrate(30);
+          }
         }
 
         function mergePiece() {
-            player.matrix.forEach((row, y) => {
-                row.forEach((val, x) => {
-                    if (val) {
-                        arena[y + player.pos.y][x + player.pos.x] = val;
-                    }
-                });
+          player.matrix.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                arena[y + player.pos.y][x + player.pos.x] = val;
+              }
             });
+          });
         }
 
         function playerDrop() {
-            player.pos.y++;
-            if (collide(arena, player)) {
-                player.pos.y--;
-                mergePiece();
-                playerReset();
-                arenaSweep();
-            }
-            dropCounter = 0;
-        }
-
-        function hardDrop() {
-            while (!collide(arena, player)) {
-                player.pos.y++;
-            }
+          player.pos.y++;
+          if (collide(arena, player)) {
             player.pos.y--;
             mergePiece();
             playerReset();
             arenaSweep();
+          }
+          dropCounter = 0;
+        }
+
+        function hardDrop() {
+          while (!collide(arena, player)) {
+            player.pos.y++;
+          }
+          player.pos.y--;
+          mergePiece();
+          playerReset();
+          arenaSweep();
         }
 
         function rotatePlayer(clockwise = true) {
-            const matrix = player.matrix;
-            if (!matrix) return;
-            const original = matrix.map(row => [...row]);
-            for (let y = 0; y < matrix.length; y++) {
-                for (let x = 0; x < y; x++) {
-                    [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
-                }
+          const matrix = player.matrix;
+          if (!matrix) return;
+          const original = matrix.map((row) => [...row]);
+          for (let y = 0; y < matrix.length; y++) {
+            for (let x = 0; x < y; x++) {
+              [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
             }
-            if (clockwise) {
-                matrix.forEach(row => row.reverse());
-            } else {
-                matrix.reverse();
-            }
-            if (!collide(arena, player)) return;
-            player.pos.x--;
-            if (!collide(arena, player)) return;
-            player.pos.x += 2;
-            if (!collide(arena, player)) return;
-            player.pos.x -= 1;
-            player.matrix = original;
+          }
+          if (clockwise) {
+            matrix.forEach((row) => row.reverse());
+          } else {
+            matrix.reverse();
+          }
+          if (!collide(arena, player)) return;
+          player.pos.x--;
+          if (!collide(arena, player)) return;
+          player.pos.x += 2;
+          if (!collide(arena, player)) return;
+          player.pos.x -= 1;
+          player.matrix = original;
         }
 
         function playerReset() {
-            const pieces = 'ILJOTSZ';
-            if (!player.next) {
-                player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
-            }
-            player.matrix = player.next;
+          const pieces = "ILJOTSZ";
+          if (!player.next) {
             player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
-            player.pos.y = 0;
-            player.pos.x = Math.floor(arena[0].length / 2) - Math.floor(player.matrix[0].length / 2);
-            if (collide(arena, player)) {
-                gameActive = false;
-                const toast = document.getElementById('gameover-toast');
-                toast.style.display = 'block';
-                setTimeout(() => { toast.style.display = 'none'; }, 1500);
-                syncEndGame().then(() => {
-                    document.getElementById('start-menu').style.display = 'flex';
-                });
-                if (animationFrame) cancelAnimationFrame(animationFrame);
-            }
+          }
+          player.matrix = player.next;
+          player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          player.pos.y = 0;
+          player.pos.x =
+            Math.floor(arena[0].length / 2) -
+            Math.floor(player.matrix[0].length / 2);
+          if (collide(arena, player)) {
+            gameActive = false;
+            const toast = document.getElementById("gameover-toast");
+            toast.style.display = "block";
+            setTimeout(() => {
+              toast.style.display = "none";
+            }, 1500);
+            syncEndGame().then(() => {
+              document.getElementById("start-menu").style.display = "flex";
+            });
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+          }
         }
 
         function gameLoop(time = 0) {
-            if (!gameActive || isPaused) {
-                draw();
-                animationFrame = requestAnimationFrame(gameLoop);
-                return;
-            }
-            const delta = time - lastTimestamp;
-            lastTimestamp = time;
-            dropCounter += delta;
-            if (dropCounter > dropInterval) {
-                playerDrop();
-            }
+          if (!gameActive || isPaused) {
             draw();
             animationFrame = requestAnimationFrame(gameLoop);
+            return;
+          }
+          const delta = time - lastTimestamp;
+          lastTimestamp = time;
+          dropCounter += delta;
+          if (dropCounter > dropInterval) {
+            playerDrop();
+          }
+          draw();
+          animationFrame = requestAnimationFrame(gameLoop);
         }
 
-        // ---------- ´¥Ãş¿ØÖÆ ----------
-        let touchStartX = 0, touchStartY = 0;
-        window.addEventListener('touchstart', (e) => {
+        // ---------- è§¦æ‘¸æ§åˆ¶ ----------
+        let touchStartX = 0,
+          touchStartY = 0;
+        window.addEventListener(
+          "touchstart",
+          (e) => {
             if (!gameActive || isPaused) return;
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
-        }, { passive: true });
+          },
+          { passive: true }
+        );
 
-        window.addEventListener('touchmove', (e) => {
+        window.addEventListener(
+          "touchmove",
+          (e) => {
             e.preventDefault();
-        }, { passive: false });
+          },
+          { passive: false }
+        );
 
-        window.addEventListener('touchend', (e) => {
-            if (!gameActive || isPaused) return;
-            const touch = e.changedTouches[0];
-            if (!touch) return;
-            const dx = touch.clientX - touchStartX;
-            const dy = touch.clientY - touchStartY;
-            const absDx = Math.abs(dx);
-            const absDy = Math.abs(dy);
-            const threshold = 25;
-            const longSwipeThreshold = 60;
+        window.addEventListener("touchend", (e) => {
+          if (!gameActive || isPaused) return;
+          const touch = e.changedTouches[0];
+          if (!touch) return;
+          const dx = touch.clientX - touchStartX;
+          const dy = touch.clientY - touchStartY;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          const threshold = 25;
+          const longSwipeThreshold = 60;
 
-            if (absDx > absDy && absDx > threshold) {
-                const dir = dx > 0 ? 1 : -1;
-                player.pos.x += dir;
-                if (collide(arena, player)) player.pos.x -= dir;
-            } else if (absDy > threshold) {
-                if (dy < -threshold) {
-                    rotatePlayer(true);
-                } else if (dy > longSwipeThreshold) {
-                    hardDrop();
-                } else if (dy > threshold) {
-                    playerDrop();
-                }
+          if (absDx > absDy && absDx > threshold) {
+            const dir = dx > 0 ? 1 : -1;
+            player.pos.x += dir;
+            if (collide(arena, player)) player.pos.x -= dir;
+          } else if (absDy > threshold) {
+            if (dy < -threshold) {
+              rotatePlayer(true);
+            } else if (dy > longSwipeThreshold) {
+              hardDrop();
+            } else if (dy > threshold) {
+              playerDrop();
             }
+          }
         });
 
-        // ---------- UI ¿ØÖÆº¯Êı ----------
-        window.togglePause = function() {
-            if (!gameActive) return;
-            isPaused = !isPaused;
-            document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
-            if (!isPaused) {
-                lastTimestamp = performance.now();
-                if (!animationFrame) animationFrame = requestAnimationFrame(gameLoop);
+        // ---------- UI æ§åˆ¶å‡½æ•° ----------
+        window.togglePause = function () {
+          if (!gameActive) return;
+          isPaused = !isPaused;
+          document.getElementById("pause-overlay").style.display = isPaused
+            ? "flex"
+            : "none";
+          if (!isPaused) {
+            lastTimestamp = performance.now();
+            if (!animationFrame)
+              animationFrame = requestAnimationFrame(gameLoop);
+          }
+        };
+
+        window.showHelp = function () {
+          document.getElementById("help-overlay").style.display = "flex";
+        };
+        window.closeHelp = function () {
+          document.getElementById("help-overlay").style.display = "none";
+        };
+
+        window.showLeaderboard = function () {
+          document.getElementById("lb-overlay").style.display = "flex";
+          loadLB("weekly");
+        };
+        window.closeLB = function () {
+          document.getElementById("lb-overlay").style.display = "none";
+        };
+
+        window.loadLB = async function (type) {
+          document.getElementById("tab-w").className =
+            type === "weekly" ? "tab active" : "tab";
+          document.getElementById("tab-m").className =
+            type === "monthly" ? "tab active" : "tab";
+          document.getElementById("lb-content").innerHTML =
+            '<div class="loading"><i class="fas fa-spinner fa-pulse"></i> åŠ è½½ä¸­...</div>';
+          try {
+            const { data, error } = await supabase
+              .from("leaderboard")
+              .select("*")
+              .order("score", { ascending: false })
+              .limit(type === "weekly" ? 10 : 50);
+            if (error) throw error;
+            if (!data || data.length === 0) {
+              document.getElementById("lb-content").innerHTML =
+                '<div style="color:#aaa;">æš‚æ— æ•°æ®</div>';
+              return;
             }
-        };
-
-        window.showHelp = function() {
-            document.getElementById('help-overlay').style.display = 'flex';
-        };
-        window.closeHelp = function() {
-            document.getElementById('help-overlay').style.display = 'none';
-        };
-
-        window.showLeaderboard = function() {
-            document.getElementById('lb-overlay').style.display = 'flex';
-            loadLB('weekly');
-        };
-        window.closeLB = function() {
-            document.getElementById('lb-overlay').style.display = 'none';
-        };
-
-        window.loadLB = async function(type) {
-            if (!supabase) {
-                document.getElementById('lb-content').innerHTML = '<div style="color:#f77;">Êı¾İ¿âÁ¬½ÓÊ§°Ü</div>';
-                return;
-            }
-            document.getElementById('tab-w').className = type === 'weekly' ? 'tab active' : 'tab';
-            document.getElementById('tab-m').className = type === 'monthly' ? 'tab active' : 'tab';
-            document.getElementById('lb-content').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-pulse"></i> ¼ÓÔØÖĞ...</div>';
-            try {
-                const { data, error } = await supabase
-                    .from('leaderboard')
-                    .select('*')
-                    .order('score', { ascending: false })
-                    .limit(type === 'weekly' ? 10 : 50);
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    document.getElementById('lb-content').innerHTML = '<div style="color:#aaa;">ÔİÎŞÊı¾İ</div>';
-                    return;
-                }
-                let html = '';
-                data.forEach((r, i) => {
-                    html += `<div class="lb-row">
-                        <span>${i+1}. ${r.wallet_address.slice(0,6)}...${r.wallet_address.slice(-4)}</span>
-                        <span style="color:var(--solana-green);">${r.score}</span>
+            let html = "";
+            data.forEach((r, i) => {
+              html += `<div class="lb-row">
+                        <span>${i + 1}. ${r.wallet_address.slice(
+                0,
+                6
+              )}...${r.wallet_address.slice(-4)}</span>
+                        <span style="color:var(--solana-green);">${
+                          r.score
+                        }</span>
                     </div>`;
-                });
-                document.getElementById('lb-content').innerHTML = html;
-            } catch (e) {
-                document.getElementById('lb-content').innerHTML = '<div style="color:#f77;">¼ÓÔØÊ§°Ü</div>';
-            }
+            });
+            document.getElementById("lb-content").innerHTML = html;
+          } catch (e) {
+            document.getElementById("lb-content").innerHTML =
+              '<div style="color:#f77;">åŠ è½½å¤±è´¥</div>';
+          }
         };
 
-        // ¿ªÊ¼ĞÂÓÎÏ· (ÊÔÍæÄ£Ê½)
-        window.startGame = function() {
-            // ÖØÖÃËùÓĞ×´Ì¬
-            arena.forEach(row => row.fill(0));
-            player.score = 0;
-            level = 1;
-            totalLinesCleared = 0;
-            dropInterval = BASE_INTERVAL;
-            document.getElementById('current-score').innerText = '0';
-            document.getElementById('level-value').innerText = '1';
-            const pieces = 'ILJOTSZ';
-            player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
-            playerReset();
-            gameActive = true;
-            isPaused = false;
-            document.getElementById('start-menu').style.display = 'none';
-            document.getElementById('pause-overlay').style.display = 'none';
-            lastTimestamp = performance.now();
-            if (animationFrame) cancelAnimationFrame(animationFrame);
-            animationFrame = requestAnimationFrame(gameLoop);
+        // å¼€å§‹æ–°æ¸¸æˆ (è¯•ç©æ¨¡å¼ï¼šä¸æ£€æŸ¥é’±åŒ…)
+        window.startGame = function () {
+          // è¯•ç©æ¨¡å¼ä¸‹ï¼Œå³ä½¿æœªè¿æ¥é’±åŒ…ä¹Ÿå…è®¸å¼€å§‹
+          // if (!walletAddr) { alert('è¯·å…ˆè¿æ¥é’±åŒ…'); return; }  // æ³¨é‡Šæ‰è¿™è¡Œ
+
+          arena.forEach((row) => row.fill(0));
+          player.score = 0;
+          document.getElementById("current-score").innerText = "0";
+          const pieces = "ILJOTSZ";
+          player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          playerReset();
+          gameActive = true;
+          isPaused = false;
+          document.getElementById("start-menu").style.display = "none";
+          document.getElementById("pause-overlay").style.display = "none";
+          lastTimestamp = performance.now();
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          animationFrame = requestAnimationFrame(gameLoop);
         };
 
-        window.resetAndRestart = function() {
-            if (animationFrame) cancelAnimationFrame(animationFrame);
-            arena.forEach(row => row.fill(0));
-            player.score = 0;
-            level = 1;
-            totalLinesCleared = 0;
-            dropInterval = BASE_INTERVAL;
-            document.getElementById('current-score').innerText = '0';
-            document.getElementById('level-value').innerText = '1';
-            const pieces = 'ILJOTSZ';
-            player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
-            playerReset();
-            gameActive = true;
-            isPaused = false;
-            document.getElementById('pause-overlay').style.display = 'none';
-            lastTimestamp = performance.now();
-            animationFrame = requestAnimationFrame(gameLoop);
+        window.resetAndRestart = function () {
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          arena.forEach((row) => row.fill(0));
+          player.score = 0;
+          document.getElementById("current-score").innerText = "0";
+          const pieces = "ILJOTSZ";
+          player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          playerReset();
+          gameActive = true;
+          isPaused = false;
+          document.getElementById("pause-overlay").style.display = "none";
+          lastTimestamp = performance.now();
+          animationFrame = requestAnimationFrame(gameLoop);
         };
 
-        window.quitToMenu = function() {
-            gameActive = false;
-            isPaused = false;
-            document.getElementById('pause-overlay').style.display = 'none';
-            document.getElementById('start-menu').style.display = 'flex';
-            if (animationFrame) cancelAnimationFrame(animationFrame);
+        window.quitToMenu = function () {
+          gameActive = false;
+          isPaused = false;
+          document.getElementById("pause-overlay").style.display = "none";
+          document.getElementById("start-menu").style.display = "flex";
+          if (animationFrame) cancelAnimationFrame(animationFrame);
         };
 
-        // ³õÊ¼»¯£ºÈ·±£¡°¿ªÊ¼ÈÎÎñ¡±°´Å¥¿ÉÓÃ
-        document.getElementById('play-btn').disabled = false;
+        // åˆå§‹åŒ–ï¼šç¡®ä¿â€œå¼€å§‹ä»»åŠ¡â€æŒ‰é’®å¯ç”¨ï¼Œå³ä½¿æœªè¿æ¥é’±åŒ…
+        document.getElementById("play-btn").disabled = false;
 
-        // Ô¤»æÖÆ
+        // é¢„ç»˜åˆ¶
         draw();
-        const pieces = 'ILJOTSZ';
+        const pieces = "ILJOTSZ";
         player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
         draw();
 
-        document.addEventListener('gesturestart', (e) => e.preventDefault());
-    })();
-</script>
-</body>
+        document.addEventListener("gesturestart", (e) => e.preventDefault());
+      })();
+    </script>
+  </body>
 </html>
