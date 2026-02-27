@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Seeker Tetris · 试玩版</title>
+    <!-- 使用图标库简化按钮图标 (Font Awesome 免费版) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- Supabase & Solana 依赖 (仍保留但试玩时不调用) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      :root {
+        --solana-purple: #dc1fff;
+        --solana-green: #00ffa3;
+        --gold: #ffd700;
+        --bg-start: #0a0515;
+        --bg-end: #020105;
+        --glass-bg: rgba(10, 5, 20, 0.7);
+      }
+      body {
+        background: radial-gradient(
+          circle at center,
+          var(--bg-start) 0%,
+          var(--bg-end) 100%
+        );
+        color: white;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        margin: 0;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        touch-action: none; /* 完全禁止浏览器手势 */
+      }
+      /* 头部状态栏 */
+      #header {
+        padding: 12px 20px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(220, 31, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .user-stat {
+        display: flex;
+        flex-direction: column;
+      }
+      .label {
+        font-size: 0.6rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .val {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--solana-green);
+      }
+      .val.gold {
+        color: var(--gold);
+      }
+      /* 主游戏区 */
+      #main-layout {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      #game-board-container {
+        position: relative;
+        background: #000;
+        padding: 6px;
+        border-radius: 16px;
+        border: 1px solid rgba(220, 31, 255, 0.4);
+        box-shadow: 0 0 30px rgba(220, 31, 255, 0.3);
+      }
+      canvas {
+        display: block;
+        width: 260px;
+        height: 440px;
+        image-rendering: crisp-edges; /* 保持方块清晰 */
+      }
+      /* 下一个方块容器 */
+      #next-container {
+        position: absolute;
+        top: 10px;
+        right: -70px;
+        background: rgba(220, 31, 255, 0.15);
+        padding: 8px 6px;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid rgba(220, 31, 255, 0.3);
+        backdrop-filter: blur(4px);
+      }
+      #nextCanvas {
+        width: 50px;
+        height: 50px;
+        display: block;
+        margin: 4px auto 0;
+      }
+      /* 浮动图标按钮 (统一用 Font Awesome) */
+      .float-btn {
+        position: absolute;
+        background: rgba(220, 31, 255, 0.2);
+        border: 1px solid rgba(220, 31, 255, 0.4);
+        color: white;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        backdrop-filter: blur(6px);
+        font-size: 1.2rem;
+        transition: 0.15s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+      .float-btn:active {
+        transform: scale(0.92);
+        background: rgba(220, 31, 255, 0.4);
+      }
+      #lb-btn {
+        top: 10px;
+        left: 10px;
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+      #help-btn {
+        top: 65px;
+        left: 10px;
+      }
+      #pause-btn {
+        top: 10px;
+        right: 10px;
+      }
+
+      /* 遮罩层 / 弹窗 */
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(5, 2, 15, 0.96);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        backdrop-filter: blur(12px);
+        padding: 20px;
+      }
+      .menu-modal {
+        width: 90%;
+        max-width: 320px;
+        background: #111217;
+        border: 1px solid var(--solana-purple);
+        border-radius: 24px;
+        padding: 24px 20px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+      }
+      .menu-btn {
+        width: 220px;
+        padding: 14px 10px;
+        margin: 8px 0;
+        background: rgba(220, 31, 255, 0.12);
+        border: 1px solid var(--solana-purple);
+        color: white;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: 0.15s;
+        backdrop-filter: blur(5px);
+      }
+      .menu-btn:not(:disabled):active {
+        background: rgba(220, 31, 255, 0.3);
+        transform: scale(0.97);
+      }
+      .menu-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        border-color: #555;
+      }
+
+      /* 排行榜样式 */
+      .tab-box {
+        display: flex;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .tab {
+        flex: 1;
+        padding: 8px 4px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        border: 1px solid #444;
+        cursor: pointer;
+        background: transparent;
+        color: #aaa;
+      }
+      .tab.active {
+        background: var(--gold);
+        color: black;
+        border-color: var(--gold);
+        font-weight: bold;
+      }
+      .lb-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 6px;
+        border-bottom: 1px solid #222;
+        font-size: 0.8rem;
+      }
+      #lb-content {
+        max-height: 260px;
+        overflow-y: auto;
+        margin: 10px 0;
+      }
+      .loading {
+        color: #aaa;
+        padding: 20px;
+        font-style: italic;
+      }
+
+      /* 游戏结束简短提示 */
+      #gameover-toast {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid var(--solana-green);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 40px;
+        font-weight: bold;
+        z-index: 300;
+        display: none;
+        backdrop-filter: blur(8px);
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <div class="user-stat" style="max-width: 55%">
+        <span class="label"
+          ><i class="fas fa-wallet" style="margin-right: 4px"></i>Seeker
+          Wallet</span
+        >
+        <span class="val" id="wallet-display">未连接</span>
+        <span class="label" style="margin-top: 6px"
+          ><i class="fas fa-coins" style="color: var(--gold)"></i> TET 币</span
+        >
+        <span class="val gold" id="tet-coins">0</span>
+      </div>
+      <div class="user-stat" style="text-align: right">
+        <span class="label">分数</span>
+        <span class="val" id="current-score">0</span>
+        <span class="label" style="margin-top: 6px">历史最高</span>
+        <span class="val gold" id="high-score">0</span>
+      </div>
+    </div>
+
+    <div id="main-layout">
+      <!-- 浮动按钮 (图标替代问号) -->
+      <div id="lb-btn" class="float-btn" onclick="showLeaderboard()">
+        <i class="fas fa-trophy"></i>
+      </div>
+      <div id="help-btn" class="float-btn" onclick="showHelp()">
+        <i class="fas fa-question"></i>
+      </div>
+      <button id="pause-btn" class="float-btn" onclick="togglePause()">
+        <i class="fas fa-pause"></i>
+      </button>
+
+      <div id="game-board-container">
+        <canvas id="tetris" width="240" height="400"></canvas>
+        <div id="next-container">
+          <span class="label" style="font-size: 0.5rem">NEXT</span>
+          <canvas id="nextCanvas" width="80" height="80"></canvas>
+        </div>
+      </div>
+
+      <!-- 游戏结束小提示 -->
+      <div id="gameover-toast">GAME OVER</div>
+
+      <!-- 奖励弹窗 -->
+      <div id="reward-overlay" class="overlay" style="display: none">
+        <div class="menu-modal" style="border-color: var(--gold)">
+          <i
+            class="fas fa-gift"
+            style="font-size: 3rem; color: var(--gold); margin-bottom: 10px"
+          ></i>
+          <h2 style="color: var(--gold); margin: 0">周排名奖励</h2>
+          <p id="reward-msg" style="color: #ccc">你上周排名靠前，获得额外币</p>
+          <h1
+            id="reward-amount"
+            style="
+              color: var(--solana-green);
+              font-size: 2.5rem;
+              margin: 10px 0;
+            "
+          >
+            +0
+          </h1>
+          <button
+            class="menu-btn"
+            onclick="claimReward()"
+            style="
+              background: rgba(255, 215, 0, 0.2);
+              border-color: var(--gold);
+            "
+          >
+            领取 TET
+          </button>
+          <button
+            class="menu-btn"
+            onclick="closeReward()"
+            style="border-color: #555"
+          >
+            稍后
+          </button>
+        </div>
+      </div>
+
+      <!-- 帮助弹窗 -->
+      <div id="help-overlay" class="overlay" style="display: none">
+        <div class="menu-modal">
+          <i
+            class="fas fa-gamepad"
+            style="font-size: 2.5rem; color: var(--solana-green)"
+          ></i>
+          <h3 style="color: var(--solana-green)">操作说明</h3>
+          <p style="margin: 5px 0">
+            <i class="fas fa-arrow-left"></i>
+            <i class="fas fa-arrow-right"></i> 左右滑动：移动
+          </p>
+          <p><i class="fas fa-arrow-up"></i> 上滑：旋转</p>
+          <p><i class="fas fa-arrow-down"></i> 下滑短距离：软降一格</p>
+          <p>
+            <i class="fas fa-arrow-down" style="transform: scale(1.2)"></i>
+            下滑长距离：硬降到底
+          </p>
+          <hr style="border: 0.5px solid #333; margin: 20px 0" />
+          <p style="font-size: 0.8rem">
+            每消除一行 20 分<br />100 分 = 1 TET 币
+          </p>
+          <button class="menu-btn" onclick="closeHelp()">关闭</button>
+        </div>
+      </div>
+
+      <!-- 排行榜弹窗 -->
+      <div id="lb-overlay" class="overlay" style="display: none">
+        <div
+          class="menu-modal"
+          style="border-color: var(--gold); max-width: 340px"
+        >
+          <h3 style="color: var(--gold); margin: 0 0 10px">
+            <i class="fas fa-crown"></i> 排行榜
+          </h3>
+          <div class="tab-box">
+            <div id="tab-w" class="tab active" onclick="loadLB('weekly')">
+              本周
+            </div>
+            <div id="tab-m" class="tab" onclick="loadLB('monthly')">本月</div>
+          </div>
+          <div id="lb-content" style="min-height: 150px">加载中...</div>
+          <button class="menu-btn" onclick="closeLB()" style="margin-top: 10px">
+            返回
+          </button>
+        </div>
+      </div>
+
+      <!-- 暂停弹窗 -->
+      <div id="pause-overlay" class="overlay" style="display: none">
+        <div class="menu-modal">
+          <i
+            class="fas fa-pause-circle"
+            style="font-size: 3rem; color: var(--solana-purple)"
+          ></i>
+          <h2 style="color: var(--solana-purple)">暂停中</h2>
+          <button class="menu-btn" onclick="togglePause()">继续游戏</button>
+          <button class="menu-btn" onclick="resetAndRestart()">重新开始</button>
+          <button class="menu-btn" onclick="quitToMenu()">返回菜单</button>
+        </div>
+      </div>
+
+      <!-- 开始菜单 -->
+      <div id="start-menu" class="overlay">
+        <div style="text-align: center; max-width: 320px">
+          <h1
+            style="
+              color: var(--solana-green);
+              letter-spacing: 4px;
+              text-shadow: 0 0 15px rgba(0, 255, 163, 0.5);
+            "
+          >
+            SEEKER TETRIS
+          </h1>
+          <p style="color: #aaa; margin-bottom: 20px">连接钱包，赚取 TET 币</p>
+          <!-- 试玩提示 -->
+          <p style="color: #ffd700; font-size: 0.85rem; margin-bottom: 10px">
+            <i class="fas fa-gamepad"></i> 无需钱包也可试玩，分数不会保存
+          </p>
+          <button id="connect-btn" class="menu-btn" onclick="connectWallet()">
+            <i class="fas fa-plug"></i> 连接 Seeker 钱包
+          </button>
+          <button id="play-btn" class="menu-btn" onclick="startGame()">
+            <i class="fas fa-play"></i> 开始任务
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        // ---------- 初始化配置 ----------
+        const SUPABASE_URL = "https://rczmgwjvvwxdcpgkodey.supabase.co";
+        const SUPABASE_KEY =
+          "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjem1nd2p2dnd4ZGNwZ2tvZGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTcxNzIsImV4cCI6MjA4NzU5MzE3Mn0.RMhyCd9u5XS5tUGxc9dBJwKUTlE7jglWY_YCuacwtQc";
+        const supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 全局状态
+        let walletAddr = null;
+        let gameActive = false;
+        let isPaused = false;
+        let dropInterval = 1000; // ms
+        let dropCounter = 0;
+        let lastTimestamp = 0;
+        let animationFrame = null;
+
+        // 游戏数据
+        const canvas = document.getElementById("tetris");
+        const context = canvas.getContext("2d");
+        const nCanvas = document.getElementById("nextCanvas");
+        const nContext = nCanvas.getContext("2d");
+        context.scale(20, 20);
+        nContext.scale(20, 20);
+
+        const colors = [
+          null,
+          "#00ffa3",
+          "#dc1fff",
+          "#00e5ff",
+          "#ffbe0b",
+          "#ff006e",
+          "#8338ec",
+          "#3a86ff",
+        ];
+        const arena = Array.from({ length: 20 }, () => Array(12).fill(0));
+        const player = {
+          pos: { x: 0, y: 0 },
+          matrix: null,
+          next: null,
+          score: 0,
+        };
+
+        // ---------- 辅助函数 ----------
+        function supabaseCreateClient(url, key) {
+          return window.supabase.createClient(url, key);
+        }
+
+        // 获取ISO周数 (用于奖励周判定)
+        function getWeekNumber(date = new Date()) {
+          const d = new Date(
+            Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+          );
+          d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+          const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+          return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+        }
+
+        // 生成周存储key
+        function getWeekKey() {
+          const now = new Date();
+          return `claim_${now.getFullYear()}_${getWeekNumber(now)}`;
+        }
+
+        // ---------- 钱包连接 ----------
+        window.connectWallet = async function () {
+          const btn = document.getElementById("connect-btn");
+          try {
+            const provider = window.solana || window.phantom?.solana;
+            if (!provider) {
+              alert("请在 Seeker 浏览器或 Phantom 钱包中打开");
+              return;
+            }
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> 连接中...';
+            const resp = await provider.connect();
+            walletAddr = resp.publicKey.toString();
+            document.getElementById("wallet-display").innerText =
+              walletAddr.slice(0, 6) + "..." + walletAddr.slice(-4);
+            btn.style.display = "none"; // 隐藏连接按钮
+            // 从数据库拉取用户数据
+            await updateStatsFromDB();
+            // 检查是否有未领取奖励 (基于本地存储模拟，正式应后端校验)
+            checkAutoRewards();
+          } catch (err) {
+            console.error(err);
+            btn.innerHTML = '<i class="fas fa-plug"></i> 连接 Seeker 钱包';
+            alert("连接失败: " + err.message);
+          }
+        };
+
+        // ---------- 数据库操作 ----------
+        async function updateStatsFromDB() {
+          if (!walletAddr) return;
+          try {
+            const { data, error } = await supabase
+              .from("leaderboard")
+              .select("*")
+              .eq("wallet_address", walletAddr)
+              .maybeSingle();
+            if (error) throw error;
+            if (data) {
+              document.getElementById("tet-coins").innerText =
+                data.tet_coins || 0;
+              document.getElementById("high-score").innerText = data.score || 0;
+            } else {
+              document.getElementById("tet-coins").innerText = "0";
+              document.getElementById("high-score").innerText = "0";
+            }
+          } catch (e) {
+            console.warn("DB fetch error", e);
+          }
+        }
+
+        // 同步分数至数据库 (游戏结束时调用)  - 试玩模式下直接返回
+        async function syncEndGame() {
+          if (!walletAddr) return; // 未连接钱包不执行任何数据库操作
+          const earned = Math.floor(player.score / 100);
+          try {
+            const { error } = await supabase.from("leaderboard").upsert(
+              {
+                wallet_address: walletAddr,
+                score: player.score,
+                tet_coins: earned,
+              },
+              {
+                onConflict: "wallet_address",
+                ignoreDuplicates: false,
+              }
+            );
+            if (error) throw error;
+            await updateStatsFromDB();
+          } catch (e) {
+            console.error("sync error", e);
+            alert("分数同步失败，但本地已记录");
+          }
+        }
+
+        // 奖励检测 (简单版)
+        function checkAutoRewards() {
+          if (!walletAddr) return;
+          const weekKey = getWeekKey();
+          if (localStorage.getItem(weekKey)) return;
+
+          supabase
+            .from("leaderboard")
+            .select("*")
+            .order("score", { ascending: false })
+            .limit(50)
+            .then(({ data }) => {
+              if (!data) return;
+              const index = data.findIndex(
+                (r) => r.wallet_address === walletAddr
+              );
+              if (index === -1) return;
+              let prize = 0;
+              if (index === 0) prize = 500;
+              else if (index < 3) prize = 200;
+              else if (index < 10) prize = 50;
+              if (prize > 0) {
+                document.getElementById(
+                  "reward-amount"
+                ).innerText = `+${prize} TET`;
+                document.getElementById("reward-overlay").style.display =
+                  "flex";
+                window.pendingPrize = prize;
+                window.pendingKey = weekKey;
+              }
+            })
+            .catch(() => {});
+        }
+
+        window.claimReward = async function () {
+          if (!walletAddr || !window.pendingPrize) return;
+          try {
+            const { data: user } = await supabase
+              .from("leaderboard")
+              .select("tet_coins")
+              .eq("wallet_address", walletAddr)
+              .maybeSingle();
+            const newCoins = (user?.tet_coins || 0) + window.pendingPrize;
+            await supabase
+              .from("leaderboard")
+              .upsert(
+                { wallet_address: walletAddr, tet_coins: newCoins },
+                { onConflict: "wallet_address" }
+              );
+            localStorage.setItem(window.pendingKey, "true");
+            document.getElementById("reward-overlay").style.display = "none";
+            await updateStatsFromDB();
+            window.pendingPrize = null;
+          } catch (e) {
+            alert("领取失败，稍后重试");
+          }
+        };
+        window.closeReward = function () {
+          document.getElementById("reward-overlay").style.display = "none";
+        };
+
+        // ---------- 俄罗斯方块核心 ----------
+        function createPiece(type) {
+          if (type === "I")
+            return [
+              [0, 3, 0, 0],
+              [0, 3, 0, 0],
+              [0, 3, 0, 0],
+              [0, 3, 0, 0],
+            ];
+          if (type === "L")
+            return [
+              [0, 0, 7],
+              [7, 7, 7],
+              [0, 0, 0],
+            ];
+          if (type === "J")
+            return [
+              [1, 0, 0],
+              [1, 1, 1],
+              [0, 0, 0],
+            ];
+          if (type === "O")
+            return [
+              [4, 4],
+              [4, 4],
+            ];
+          if (type === "Z")
+            return [
+              [5, 5, 0],
+              [0, 5, 5],
+              [0, 0, 0],
+            ];
+          if (type === "S")
+            return [
+              [0, 2, 2],
+              [2, 2, 0],
+              [0, 0, 0],
+            ];
+          if (type === "T")
+            return [
+              [0, 6, 0],
+              [6, 6, 6],
+              [0, 0, 0],
+            ];
+          return [[0]];
+        }
+
+        function draw() {
+          context.fillStyle = "#05020a";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          // 绘制影子 (ghost)
+          const ghost = {
+            pos: { x: player.pos.x, y: player.pos.y },
+            matrix: player.matrix,
+          };
+          while (!collide(arena, ghost)) ghost.pos.y++;
+          ghost.pos.y--;
+          ghost.matrix.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                context.fillStyle = "rgba(255,255,255,0.12)";
+                context.fillRect(
+                  x + ghost.pos.x + 0.05,
+                  y + ghost.pos.y + 0.05,
+                  0.9,
+                  0.9
+                );
+              }
+            });
+          });
+          // 绘制已固定的方块
+          arena.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                context.fillStyle = colors[val];
+                context.fillRect(x + 0.05, y + 0.05, 0.9, 0.9);
+              }
+            });
+          });
+          // 绘制当前方块
+          player.matrix.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                context.fillStyle = colors[val];
+                context.fillRect(
+                  x + player.pos.x + 0.05,
+                  y + player.pos.y + 0.05,
+                  0.9,
+                  0.9
+                );
+              }
+            });
+          });
+          // 绘制下一个方块
+          nContext.fillStyle = "#05020a";
+          nContext.fillRect(0, 0, 4, 4);
+          if (player.next) {
+            const nextMat = player.next;
+            const offsetX = (4 - nextMat[0].length) / 2;
+            const offsetY = (4 - nextMat.length) / 2;
+            nextMat.forEach((row, y) => {
+              row.forEach((val, x) => {
+                if (val) {
+                  nContext.fillStyle = colors[val];
+                  nContext.fillRect(
+                    x + offsetX + 0.05,
+                    y + offsetY + 0.05,
+                    0.9,
+                    0.9
+                  );
+                }
+              });
+            });
+          }
+        }
+
+        function collide(arena, piece) {
+          const m = piece.matrix;
+          const o = piece.pos;
+          for (let y = 0; y < m.length; y++) {
+            for (let x = 0; x < m[y].length; x++) {
+              if (m[y][x] !== 0) {
+                const arenaRow = o.y + y;
+                const arenaCol = o.x + x;
+                if (
+                  arenaRow >= arena.length ||
+                  arenaCol < 0 ||
+                  arenaCol >= arena[0].length ||
+                  arenaRow < 0
+                )
+                  return true;
+                if (arena[arenaRow] && arena[arenaRow][arenaCol] !== 0)
+                  return true;
+              }
+            }
+          }
+          return false;
+        }
+
+        function arenaSweep() {
+          let rowsCleared = 0;
+          outer: for (let y = arena.length - 1; y > 0; y--) {
+            for (let x = 0; x < arena[y].length; x++) {
+              if (arena[y][x] === 0) continue outer;
+            }
+            const row = arena.splice(y, 1)[0].fill(0);
+            arena.unshift(row);
+            rowsCleared++;
+            y++;
+          }
+          if (rowsCleared > 0) {
+            player.score += rowsCleared * 20;
+            document.getElementById("current-score").innerText = player.score;
+            if (window.navigator.vibrate) navigator.vibrate(30);
+          }
+        }
+
+        function mergePiece() {
+          player.matrix.forEach((row, y) => {
+            row.forEach((val, x) => {
+              if (val) {
+                arena[y + player.pos.y][x + player.pos.x] = val;
+              }
+            });
+          });
+        }
+
+        function playerDrop() {
+          player.pos.y++;
+          if (collide(arena, player)) {
+            player.pos.y--;
+            mergePiece();
+            playerReset();
+            arenaSweep();
+          }
+          dropCounter = 0;
+        }
+
+        function hardDrop() {
+          while (!collide(arena, player)) {
+            player.pos.y++;
+          }
+          player.pos.y--;
+          mergePiece();
+          playerReset();
+          arenaSweep();
+        }
+
+        function rotatePlayer(clockwise = true) {
+          const matrix = player.matrix;
+          if (!matrix) return;
+          const original = matrix.map((row) => [...row]);
+          for (let y = 0; y < matrix.length; y++) {
+            for (let x = 0; x < y; x++) {
+              [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+            }
+          }
+          if (clockwise) {
+            matrix.forEach((row) => row.reverse());
+          } else {
+            matrix.reverse();
+          }
+          if (!collide(arena, player)) return;
+          player.pos.x--;
+          if (!collide(arena, player)) return;
+          player.pos.x += 2;
+          if (!collide(arena, player)) return;
+          player.pos.x -= 1;
+          player.matrix = original;
+        }
+
+        function playerReset() {
+          const pieces = "ILJOTSZ";
+          if (!player.next) {
+            player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          }
+          player.matrix = player.next;
+          player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          player.pos.y = 0;
+          player.pos.x =
+            Math.floor(arena[0].length / 2) -
+            Math.floor(player.matrix[0].length / 2);
+          if (collide(arena, player)) {
+            gameActive = false;
+            const toast = document.getElementById("gameover-toast");
+            toast.style.display = "block";
+            setTimeout(() => {
+              toast.style.display = "none";
+            }, 1500);
+            syncEndGame().then(() => {
+              document.getElementById("start-menu").style.display = "flex";
+            });
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+          }
+        }
+
+        function gameLoop(time = 0) {
+          if (!gameActive || isPaused) {
+            draw();
+            animationFrame = requestAnimationFrame(gameLoop);
+            return;
+          }
+          const delta = time - lastTimestamp;
+          lastTimestamp = time;
+          dropCounter += delta;
+          if (dropCounter > dropInterval) {
+            playerDrop();
+          }
+          draw();
+          animationFrame = requestAnimationFrame(gameLoop);
+        }
+
+        // ---------- 触摸控制 ----------
+        let touchStartX = 0,
+          touchStartY = 0;
+        window.addEventListener(
+          "touchstart",
+          (e) => {
+            if (!gameActive || isPaused) return;
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+          },
+          { passive: true }
+        );
+
+        window.addEventListener(
+          "touchmove",
+          (e) => {
+            e.preventDefault();
+          },
+          { passive: false }
+        );
+
+        window.addEventListener("touchend", (e) => {
+          if (!gameActive || isPaused) return;
+          const touch = e.changedTouches[0];
+          if (!touch) return;
+          const dx = touch.clientX - touchStartX;
+          const dy = touch.clientY - touchStartY;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          const threshold = 25;
+          const longSwipeThreshold = 60;
+
+          if (absDx > absDy && absDx > threshold) {
+            const dir = dx > 0 ? 1 : -1;
+            player.pos.x += dir;
+            if (collide(arena, player)) player.pos.x -= dir;
+          } else if (absDy > threshold) {
+            if (dy < -threshold) {
+              rotatePlayer(true);
+            } else if (dy > longSwipeThreshold) {
+              hardDrop();
+            } else if (dy > threshold) {
+              playerDrop();
+            }
+          }
+        });
+
+        // ---------- UI 控制函数 ----------
+        window.togglePause = function () {
+          if (!gameActive) return;
+          isPaused = !isPaused;
+          document.getElementById("pause-overlay").style.display = isPaused
+            ? "flex"
+            : "none";
+          if (!isPaused) {
+            lastTimestamp = performance.now();
+            if (!animationFrame)
+              animationFrame = requestAnimationFrame(gameLoop);
+          }
+        };
+
+        window.showHelp = function () {
+          document.getElementById("help-overlay").style.display = "flex";
+        };
+        window.closeHelp = function () {
+          document.getElementById("help-overlay").style.display = "none";
+        };
+
+        window.showLeaderboard = function () {
+          document.getElementById("lb-overlay").style.display = "flex";
+          loadLB("weekly");
+        };
+        window.closeLB = function () {
+          document.getElementById("lb-overlay").style.display = "none";
+        };
+
+        window.loadLB = async function (type) {
+          document.getElementById("tab-w").className =
+            type === "weekly" ? "tab active" : "tab";
+          document.getElementById("tab-m").className =
+            type === "monthly" ? "tab active" : "tab";
+          document.getElementById("lb-content").innerHTML =
+            '<div class="loading"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>';
+          try {
+            const { data, error } = await supabase
+              .from("leaderboard")
+              .select("*")
+              .order("score", { ascending: false })
+              .limit(type === "weekly" ? 10 : 50);
+            if (error) throw error;
+            if (!data || data.length === 0) {
+              document.getElementById("lb-content").innerHTML =
+                '<div style="color:#aaa;">暂无数据</div>';
+              return;
+            }
+            let html = "";
+            data.forEach((r, i) => {
+              html += `<div class="lb-row">
+                        <span>${i + 1}. ${r.wallet_address.slice(
+                0,
+                6
+              )}...${r.wallet_address.slice(-4)}</span>
+                        <span style="color:var(--solana-green);">${
+                          r.score
+                        }</span>
+                    </div>`;
+            });
+            document.getElementById("lb-content").innerHTML = html;
+          } catch (e) {
+            document.getElementById("lb-content").innerHTML =
+              '<div style="color:#f77;">加载失败</div>';
+          }
+        };
+
+        // 开始新游戏 (试玩模式：不检查钱包)
+        window.startGame = function () {
+          // 试玩模式下，即使未连接钱包也允许开始
+          // if (!walletAddr) { alert('请先连接钱包'); return; }  // 注释掉这行
+
+          arena.forEach((row) => row.fill(0));
+          player.score = 0;
+          document.getElementById("current-score").innerText = "0";
+          const pieces = "ILJOTSZ";
+          player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          playerReset();
+          gameActive = true;
+          isPaused = false;
+          document.getElementById("start-menu").style.display = "none";
+          document.getElementById("pause-overlay").style.display = "none";
+          lastTimestamp = performance.now();
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          animationFrame = requestAnimationFrame(gameLoop);
+        };
+
+        window.resetAndRestart = function () {
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          arena.forEach((row) => row.fill(0));
+          player.score = 0;
+          document.getElementById("current-score").innerText = "0";
+          const pieces = "ILJOTSZ";
+          player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+          playerReset();
+          gameActive = true;
+          isPaused = false;
+          document.getElementById("pause-overlay").style.display = "none";
+          lastTimestamp = performance.now();
+          animationFrame = requestAnimationFrame(gameLoop);
+        };
+
+        window.quitToMenu = function () {
+          gameActive = false;
+          isPaused = false;
+          document.getElementById("pause-overlay").style.display = "none";
+          document.getElementById("start-menu").style.display = "flex";
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+        };
+
+        // 初始化：确保“开始任务”按钮可用，即使未连接钱包
+        document.getElementById("play-btn").disabled = false;
+
+        // 预绘制
+        draw();
+        const pieces = "ILJOTSZ";
+        player.next = createPiece(pieces[Math.floor(Math.random() * 7)]);
+        draw();
+
+        document.addEventListener("gesturestart", (e) => e.preventDefault());
+      })();
+    </script>
+  </body>
+</html>
