@@ -434,8 +434,9 @@
         // ---------- 初始化配置 ----------
         const SUPABASE_URL = "https://rczmgwjvvwxdcpgkodey.supabase.co";
         const SUPABASE_KEY =
-          "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjem1nd2p2dnd4ZGNwZ2tvZGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTcxNzIsImV4cCI6MjA4NzU5MzE3Mn0.RMhyCd9u5XS5tUGxc9dBJwKUTlE7jglWY_YCuacwtQc";
-        const supabase = supabaseCreateClient(SUPABASE_URL, SUPABASE_KEY);
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjem1nd2p2dnd4ZGNwZ2tvZGV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTcxNzIsImV4cCI6MjA4NzU5MzE3Mn0.RMhyCd9u5XS5tUGxc9dBJwKUTlE7jglWY_YCuacwtQc";
+        // 确保调用的是全局库中的创建函数
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // 全局状态
         let walletAddr = null;
