@@ -522,50 +522,64 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ---------- 数据库操作 ----------
         async function updateStatsFromDB() {
-          if (!walletAddr) return;
-          try {
-            const { data, error } = await supabase
-              .from("leaderboard")
-              .select("*")
-              .eq("wallet_address", walletAddr)
-              .maybeSingle();
-            if (error) throw error;
-            if (data) {
-              document.getElementById("tet-coins").innerText =
-                data.tet_coins || 0;
-              document.getElementById("high-score").innerText = data.score || 0;
-            } else {
-              document.getElementById("tet-coins").innerText = "0";
-              document.getElementById("high-score").innerText = "0";
-            }
-          } catch (e) {
-            console.warn("DB fetch error", e);
-          }
-        }
+  if (!walletAddr) return;
+  try {
+    const { data, error } = await supabase
+      .from("leaderboard")
+      .select("score, tet_coins") // 明确查询分数和金币
+      .eq("wallet_address", walletAddr)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      // 把数据库里的值存入本地变量，这样游戏结束时才能累加
+      highInDB = data.score || 0; 
+      coinsInDB = data.tet_coins || 0;
+
+      // 更新界面显示
+      document.getElementById("tet-coins").innerText = coinsInDB;
+      document.getElementById("high-score").innerText = highInDB;
+    }
+  } catch (e) {
+    console.warn("读取历史数据失败", e);
+  }
+}
 
         // 同步分数至数据库 (游戏结束时调用)  - 试玩模式下直接返回
-        async function syncEndGame() {
-          if (!walletAddr) return; // 未连接钱包不执行任何数据库操作
-          const earned = Math.floor(player.score / 100);
-          try {
-            const { error } = await supabase.from("leaderboard").upsert(
-              {
-                wallet_address: walletAddr,
-                score: player.score,
-                tet_coins: earned,
-              },
-              {
-                onConflict: "wallet_address",
-                ignoreDuplicates: false,
-              }
-            );
-            if (error) throw error;
-            await updateStatsFromDB();
-          } catch (e) {
-            console.error("sync error", e);
-            alert("分数同步失败，但本地已记录");
-          }
-        }
+      async function syncEndGame() {
+  if (!walletAddr) return; 
+
+  const earned = Math.floor(player.score / 100);
+  
+  // 核心逻辑：新高分 = 历史最高和当前得分中较大的那个
+  const finalHighScore = Math.max(highInDB, player.score);
+  // 核心逻辑：总金币 = 历史金币 + 本次赚取的
+  const finalCoins = coinsInDB + earned;
+
+  try {
+    const { error } = await supabase.from("leaderboard").upsert(
+      {
+        wallet_address: walletAddr,
+        score: finalHighScore,
+        tet_coins: finalCoins, // 存入累加后的总数
+      },
+      { onConflict: "wallet_address" }
+    );
+
+    if (error) throw error;
+
+    // 同步成功后，更新本地变量，防止连续玩时不刷新
+    highInDB = finalHighScore;
+    coinsInDB = finalCoins;
+    
+    // 实时刷新界面
+    document.getElementById("tet-coins").innerText = coinsInDB;
+    document.getElementById("high-score").innerText = highInDB;
+  } catch (e) {
+    console.error("同步失败", e);
+  }
+}
 
         // 奖励检测 (简单版)
         function checkAutoRewards() {
