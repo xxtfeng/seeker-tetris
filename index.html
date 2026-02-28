@@ -267,14 +267,14 @@
         >
         <span class="val" id="wallet-display">未连接</span>
         <span class="label" style="margin-top: 6px"
-          ><i class="fas fa-coins" style="color: var(--gold)"></i> TET 币</span
+          ><i class="fas fa-coins" style="color: var(--gold)"></i> TET Coins</span
         >
         <span class="val gold" id="tet-coins">0</span>
       </div>
       <div class="user-stat" style="text-align: right">
-        <span class="label">分数</span>
+        <span class="label">Score</span>
         <span class="val" id="current-score">0</span>
-        <span class="label" style="margin-top: 6px">历史最高</span>
+        <span class="label" style="margin-top: 6px">High Score</span>
         <span class="val gold" id="high-score">0</span>
       </div>
     </div>
@@ -309,8 +309,8 @@
             class="fas fa-gift"
             style="font-size: 3rem; color: var(--gold); margin-bottom: 10px"
           ></i>
-          <h2 style="color: var(--gold); margin: 0">周排名奖励</h2>
-          <p id="reward-msg" style="color: #ccc">你上周排名靠前，获得额外币</p>
+          <h2 style="color: var(--gold); margin: 0">Weekly Reward</h2>
+          <p id="reward-msg" style="color: #ccc">You ranked top last week! [span_4](start_span)Earned extra coins.</p>
           <h1
             id="reward-amount"
             style="
@@ -329,14 +329,14 @@
               border-color: var(--gold);
             "
           >
-            领取 TET
+            Claim TET
           </button>
           <button
             class="menu-btn"
             onclick="closeReward()"
             style="border-color: #555"
           >
-            稍后
+             Later
           </button>
         </div>
       </div>
@@ -348,22 +348,22 @@
             class="fas fa-gamepad"
             style="font-size: 2.5rem; color: var(--solana-green)"
           ></i>
-          <h3 style="color: var(--solana-green)">操作说明</h3>
+          <h3 style="color: var(--solana-green)">Controls</h3>
           <p style="margin: 5px 0">
             <i class="fas fa-arrow-left"></i>
-            <i class="fas fa-arrow-right"></i> 左右滑动：移动
+            <i class="fas fa-arrow-right"></i> Swipe Left/Right: Move  
           </p>
-          <p><i class="fas fa-arrow-up"></i> 上滑：旋转</p>
-          <p><i class="fas fa-arrow-down"></i> 下滑短距离：软降一格</p>
+          <p><i class="fas fa-arrow-up"></i> Swipe Up: Rotate</p>
+          <p><i class="fas fa-arrow-down"></i> Short Swipe Down: Soft Drop</p>
           <p>
             <i class="fas fa-arrow-down" style="transform: scale(1.2)"></i>
-            下滑长距离：硬降到底
+           Long Swipe Down: Hard Drop  
           </p>
           <hr style="border: 0.5px solid #333; margin: 20px 0" />
           <p style="font-size: 0.8rem">
-            每消除一行 20 分<br />100 分 = 1 TET 币
+           20 pts per line.<br />100 pts = 1 TET Coin
           </p>
-          <button class="menu-btn" onclick="closeHelp()">关闭</button>
+          <button class="menu-btn" onclick="closeHelp()"> Close </button>
         </div>
       </div>
 
@@ -374,17 +374,17 @@
           style="border-color: var(--gold); max-width: 340px"
         >
           <h3 style="color: var(--gold); margin: 0 0 10px">
-            <i class="fas fa-crown"></i> 排行榜
+            <i class="fas fa-crown"></i>  Leaderboard 
           </h3>
           <div class="tab-box">
             <div id="tab-w" class="tab active" onclick="loadLB('weekly')">
-              本周
+              Weekly
             </div>
-            <div id="tab-m" class="tab" onclick="loadLB('monthly')">本月</div>
+            <div id="tab-m" class="tab" onclick="loadLB('monthly')">Monthly</div>
           </div>
-          <div id="lb-content" style="min-height: 150px">加载中...</div>
+          <div id="lb-content" style="min-height: 150px">Loading...</div>
           <button class="menu-btn" onclick="closeLB()" style="margin-top: 10px">
-            返回
+            Back
           </button>
         </div>
       </div>
@@ -396,10 +396,10 @@
             class="fas fa-pause-circle"
             style="font-size: 3rem; color: var(--solana-purple)"
           ></i>
-          <h2 style="color: var(--solana-purple)">暂停中</h2>
-          <button class="menu-btn" onclick="togglePause()">继续游戏</button>
-          <button class="menu-btn" onclick="resetAndRestart()">重新开始</button>
-          <button class="menu-btn" onclick="quitToMenu()">返回菜单</button>
+          <h2 style="color: var(--solana-purple)">Paused </h2>
+          <button class="menu-btn" onclick="togglePause()">Resume</button>
+          <button class="menu-btn" onclick="resetAndRestart()">Restart</button>
+          <button class="menu-btn" onclick="quitToMenu()">Quit</button>
         </div>
       </div>
 
@@ -415,16 +415,16 @@
           >
             SEEKER TETRIS
           </h1>
-          <p style="color: #aaa; margin-bottom: 20px">连接钱包，赚取 TET 币</p>
+          <p style="color: #aaa; margin-bottom: 20px">Connect wallet to earn TET Coins </p>
           <!-- 试玩提示 -->
           <p style="color: #ffd700; font-size: 0.85rem; margin-bottom: 10px">
-            <i class="fas fa-gamepad"></i> 无需钱包也可试玩，分数不会保存
+            <i class="fas fa-gamepad"></i> Play for fun. [span_24](start_span)Scores won't be saved without a wallet
           </p>
           <button id="connect-btn" class="menu-btn" onclick="connectWallet()">
-            <i class="fas fa-plug"></i> 连接 Seeker 钱包
+            <i class="fas fa-plug"></i> Connect Seeker Wallet  
           </button>
           <button id="play-btn" class="menu-btn" onclick="startGame()">
-            <i class="fas fa-play"></i> 开始任务
+            <i class="fas fa-play"></i> Start Mission
           </button>
         </div>
       </div>
@@ -501,10 +501,10 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           try {
             const provider = window.solana || window.phantom?.solana;
             if (!provider) {
-              alert("请在 Seeker 浏览器或 Phantom 钱包中打开");
+              alert("Please open in Seeker Browser or Phantom Wallet  ");
               return;
             }
-            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> 连接中...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Connecting...';
             const resp = await provider.connect();
             walletAddr = resp.publicKey.toString();
             document.getElementById("wallet-display").innerText =
@@ -517,7 +517,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           } catch (err) {
             console.error(err);
             btn.innerHTML = '<i class="fas fa-plug"></i> 连接 Seeker 钱包';
-            alert("连接失败: " + err.message);
+            alert("Connection failed: " + err.message);
           }
         };
 
@@ -636,7 +636,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             await updateStatsFromDB();
             window.pendingPrize = null;
           } catch (e) {
-            alert("领取失败，稍后重试");
+            alert("Claim failed, try again later");
           }
         };
         window.closeReward = function () {
@@ -979,7 +979,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           document.getElementById("tab-m").className =
             type === "monthly" ? "tab active" : "tab";
           document.getElementById("lb-content").innerHTML =
-            '<div class="loading"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>';
+            '<div class="loading"><i class="fas fa-spinner fa-pulse"></i> Loading...</div>';
           try {
             const { data, error } = await supabase
               .from("leaderboard")
@@ -989,7 +989,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             if (error) throw error;
             if (!data || data.length === 0) {
               document.getElementById("lb-content").innerHTML =
-                '<div style="color:#aaa;">暂无数据</div>';
+                '<div style="color:#aaa;"> No data available </div>';
               return;
             }
             let html = "";
@@ -1007,7 +1007,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             document.getElementById("lb-content").innerHTML = html;
           } catch (e) {
             document.getElementById("lb-content").innerHTML =
-              '<div style="color:#f77;">加载失败</div>';
+              '<div style="color:#f77;">Load failed</div>';
           }
         };
 
