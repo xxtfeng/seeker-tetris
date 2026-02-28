@@ -258,6 +258,7 @@
     </style>
   </head>
   <body>
+    <audio id="bgm" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"></audio>
     <div id="header">
       <div class="user-stat" style="max-width: 55%">
         <span class="label"
@@ -795,6 +796,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
           if (rowsCleared > 0) {
             player.score += rowsCleared * 20;
             document.getElementById("current-score").innerText = player.score;
+            if (window.navigator.vibrate) window.navigator.vibrate(40);
             if (window.navigator.vibrate) navigator.vibrate(30);
           }
         }
@@ -1010,7 +1012,8 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         };
 
         // 开始新游戏 (试玩模式：不检查钱包)
-        window.startGame = function () {
+        window.startGame = function () {const music = document.getElementById("bgm");
+if(music) { music.volume = 0.3; music.play(); }
           // 试玩模式下，即使未连接钱包也允许开始
           // if (!walletAddr) { alert('请先连接钱包'); return; }  // 注释掉这行
 
