@@ -20,6 +20,7 @@
     <!-- Supabase & Solana 依赖 (仍保留但试玩时不调用) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-wallets@latest/lib/index.iife.min.js"></script>
     <style>
       * {
         box-sizing: border-box;
@@ -501,31 +502,42 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
         // ---------- 钱包连接 ----------
-        window.connectWallet = async function () {
+              window.connectWallet = async function () {
           const btn = document.getElementById("connect-btn");
           try {
+            // 优先获取 Seeker 手机注入的 solana 对象
             const provider = window.solana || window.phantom?.solana;
+
             if (!provider) {
-              alert("Please open in Seeker Browser or Phantom Wallet  ");
+              alert("Please open in Seeker Browser or Phantom Wallet");
+              window.open("https://phantom.app/", "_blank");
               return;
             }
+
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Connecting...';
+            
+            // 关键：在 Seeker 打包后，此请求会被系统截获并弹出原生指纹授权
             const resp = await provider.connect();
+            
             walletAddr = resp.publicKey.toString();
             document.getElementById("wallet-display").innerText =
               walletAddr.slice(0, 6) + "..." + walletAddr.slice(-4);
-            btn.style.display = "none"; // 隐藏连接按钮
-            // 从数据库拉取用户数据
+            btn.style.display = "none"; 
+
+            // 同步数据库数据
             await updateStatsFromDB();
-            // 检查是否有未领取奖励 (基于本地存储模拟，正式应后端校验)
             checkAutoRewards();
           } catch (err) {
-            console.error(err);
-            btn.innerHTML = '<i class="fas fa-plug"></i> 连接 Seeker 钱包';
-            alert("Connection failed: " + err.message);
+            console.error("Connection failed:", err);
+            btn.innerHTML = '<i class="fas fa-plug"></i> Connect Seeker Wallet';
+            // 处理用户取消授权的情况
+            if(err.code === 4001) {
+                alert("Connection cancelled by user.");
+            } else {
+                alert("Connection error: " + err.message);
+            }
           }
         };
-
         // ---------- 数据库操作 ----------
         async function updateStatsFromDB() {
   if (!walletAddr) return;
