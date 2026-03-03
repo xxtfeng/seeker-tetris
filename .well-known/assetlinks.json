@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.vercel.seekertetris",
-        "sha256_cert_fingerprints": ["47:8A:79:43:83:03:C4:2B:68:9A:20:93:AD:CF:FD:3A:8A:DC:7C:31:04:73:39:F1:78:79:8D:7D:24:DE:B2:DB"]
+        "sha256_cert_fingerprints": ["D2:5D:4E:B5:DE:EA:4C:AE:DC:07:50:66:C7:1B:AB:D4:C5:6E:12:2B:A1:88:34:CF:FC:CE:10:9E:7B:6D:F0:85"]
       }
     }]
